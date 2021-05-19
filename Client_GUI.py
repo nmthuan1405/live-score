@@ -118,7 +118,7 @@ class ClientGUI:
 
     def signIn(self):
         window_user = Toplevel(self.master)
-        userGUI(window_user, self.services)
+        adminGUI(window_user, self.services)
         center(window_user)
         window_user.mainloop()
 
@@ -214,20 +214,20 @@ class detailGUI:
 
         self.parent = parent
 
-        self.lbl_ID = Label(self.master, text = match[0], font=("Helvetica", 14))
-        self.lbl_ID.grid(row = 0, column = 0)
+        # self.lbl_ID = Label(self.master, text = match[0], font=("Helvetica", 14))
+        # self.lbl_ID.grid(row = 0, column = 0)
 
-        self.lbl_time = Label(self.master, text = match[1], font=("Helvetica", 14))
-        self.lbl_time.grid(row = 0, column = 1)
+        self.lbl_time = Label(self.master, text = match[1])
+        self.lbl_time.grid(row = 0, column = 0)
 
         self.lbl_team1 = Label(self.master, text = match[2], font=("Helvetica", 14))
-        self.lbl_team1.grid(row = 0, column = 2)
+        self.lbl_team1.grid(row = 0, column = 1)
 
         self.lbl_score = Label(self.master, text = match[3], font=("Helvetica", 14))
-        self.lbl_score.grid(row = 0, column = 3)
+        self.lbl_score.grid(row = 0, column = 2)
 
         self.lbl_team2 = Label(self.master, text = match[4], font=("Helvetica", 14))
-        self.lbl_team2.grid(row = 0, column = 4)
+        self.lbl_team2.grid(row = 0, column = 3)
 
         # columns
         columns = ('#1', '#2', '#3', '#4', '#5', '#6')
@@ -249,12 +249,165 @@ class detailGUI:
         self.tree.heading('#5', text='Event')
         self.tree.heading('#6', text='Team 2 player')
 
-        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 5, sticky='nsew')
+        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 4, sticky='nsew')
 
         # add a scrollbar
         self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
         self.tree.configure(yscroll = self.scrollbar.set)
-        self.scrollbar.grid(row = 1, column = 5, padx = 0, pady = 5, sticky = 'ns')
+        self.scrollbar.grid(row = 1, column = 4, padx = 0, pady = 5, sticky = 'ns')
+
+        # add data
+        contacts = []
+        contacts.append(("10'", 'A', 'Score', '1 - 0', '', ''))
+        contacts.append(("20'", '', '', '1 - 1', 'Score', 'B'))
+
+        for contact in contacts:
+            self.tree.insert('', tk.END, values=contact)
+
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def on_closing(self):
+        self.master.destroy()
+        self.parent.focus()
+        self.parent.grab_set()
+        windowsGlo.remove(self.master)
+
+class adminGUI:
+    def __init__(self, master, services):
+        windowsGlo.append(master)
+        self.master = master
+        self.services = services
+        self.master.title("Administrator")
+        # self.master.resizable(0, 0)
+        self.master.focus()
+        self.master.grab_set()
+        self.master['padx'] = 10
+        self.master['pady'] = 10
+
+        self.btn_edit = Button(self.master, text = "Edit", command = partial(self.edit, self.master))
+        self.btn_edit.grid(column = 0, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 20, ipady = 10)
+
+        self.lbl_title = Label(self.master, text = 'Match List', font=("Helvetica", 16))
+        self.lbl_title.grid(row = 0, column = 1, sticky = NS)
+
+        self.btn_logout = Button(self.master, text = "Log out")
+        self.btn_logout.grid(column = 2, row = 0, sticky = tk.E, padx = 0, pady = 0, ipadx = 20, ipady = 10)
+
+        # columns
+        columns = ('#1', '#2', '#3', '#4', '#5')
+        self.tree = ttk.Treeview(self.master, columns = columns, show = 'headings', height = 20)
+
+        #config column width
+        self.tree.column("#1", anchor = 'center', minwidth = 50, width = 50)
+        self.tree.column("#2", anchor = 'center', minwidth = 50, width = 100)
+        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 100)
+        self.tree.column("#4", anchor = 'center', minwidth = 50, width = 50)
+        self.tree.column("#5", anchor = 'center', minwidth = 50, width = 100)
+
+        # define headings
+        self.tree.heading('#1', text='ID')
+        self.tree.heading('#2', text='Time')
+        self.tree.heading('#3', text='Team 1')
+        self.tree.heading('#4', text='Score')
+        self.tree.heading('#5', text='Team 2')
+
+        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 3, sticky='nsew')
+
+        # add a scrollbar
+        self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
+        self.tree.configure(yscroll = self.scrollbar.set)
+        self.scrollbar.grid(row = 1, column = 3, padx = 0, pady = 5, sticky = 'ns')
+
+        # add data
+        contacts = []
+        contacts.append(('1', '22:10', 'Verona', '1 - 1', 'Bologna'))
+
+        for contact in contacts:
+            self.tree.insert('', tk.END, values=contact)
+        
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.btn_add = Button(self.master, text = "Add match")
+        self.btn_add.grid(column = 0, row = 2, sticky = tk.E, padx = 0, pady = 0, ipadx = 10, ipady = 5)
+
+        self.btn_delete = Button(self.master, text = "Delete match")
+        self.btn_delete.grid(column = 2, row = 2, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
+
+    def on_closing(self):
+        self.master.destroy()
+        windowsGlo.remove(self.master)
+
+    def edit(self, parent):
+        match = self.tree.item(self.tree.focus())['values']
+        if match == '':
+            return
+
+        window_edit = Toplevel(self.master)
+        editGUI(window_edit, parent, self.services, match)
+        center(window_edit)
+        window_edit.mainloop()
+
+class editGUI:
+    def __init__(self, master, parent, services, match):
+        windowsGlo.append(master)
+        self.services = services
+        self.master = master
+        self.master.title("Edit match")
+        # self.master.resizable(0, 0)
+        self.master.focus()
+        self.master.grab_set()
+        self.master['padx'] = 10
+        self.master['pady'] = 10
+
+        self.parent = parent
+
+        # self.lbl_ID = Label(self.master, text = match[0], font=("Helvetica", 14))
+        # self.lbl_ID.grid(row = 0, column = 0)
+
+        self.lbl_time = Label(self.master, text = match[1])
+        self.lbl_time.grid(row = 0, column = 0)
+
+        self.lbl_team1 = Label(self.master, text = match[2], font=("Helvetica", 14))
+        self.lbl_team1.grid(row = 0, column = 1)
+
+        self.lbl_score = Label(self.master, text = match[3], font=("Helvetica", 14))
+        self.lbl_score.grid(row = 0, column = 2)
+
+        self.lbl_team2 = Label(self.master, text = match[4], font=("Helvetica", 14))
+        self.lbl_team2.grid(row = 0, column = 3)
+
+        # columns
+        columns = ('#1', '#2', '#3', '#4', '#5', '#6')
+        self.tree = ttk.Treeview(self.master, columns = columns, show = 'headings', height = 20)
+
+        #config column width
+        self.tree.column("#1", anchor = 'center', minwidth = 50, width = 50)
+        self.tree.column("#2", anchor = 'center', minwidth = 50, width = 100)
+        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 100)
+        self.tree.column("#4", anchor = 'center', minwidth = 50, width = 50)
+        self.tree.column("#5", anchor = 'center', minwidth = 50, width = 100)
+        self.tree.column("#6", anchor = 'center', minwidth = 50, width = 100)
+
+        # define headings
+        self.tree.heading('#1', text='Time')
+        self.tree.heading('#2', text='Team 1 player')
+        self.tree.heading('#3', text='Event')
+        self.tree.heading('#4', text='Score')
+        self.tree.heading('#5', text='Event')
+        self.tree.heading('#6', text='Team 2 player')
+
+        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 4, sticky='nsew')
+
+        # add a scrollbar
+        self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
+        self.tree.configure(yscroll = self.scrollbar.set)
+        self.scrollbar.grid(row = 1, column = 4, padx = 0, pady = 5, sticky = 'ns')
+
+        self.btn_addGoal = Button(self.master, text = "Add goal")
+        self.btn_addGoal.grid(column = 1, row = 2, padx = 0, pady = 0, ipadx = 10, ipady = 5)
+
+        self.btn_addTag = Button(self.master, text = "Add tag")
+        self.btn_addTag.grid(column = 2, row = 2, padx = 0, pady = 0, ipadx = 10, ipady = 5)
 
         # add data
         contacts = []
