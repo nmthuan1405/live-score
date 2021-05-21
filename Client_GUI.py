@@ -120,7 +120,7 @@ class ClientGUI:
 
     def signIn(self):
         window_user = Toplevel(self.master)
-        userGUI(window_user, 0, self.services)  #0: user    1: admin
+        userGUI(window_user, 1, self.services)  #0: user    1: admin
         center(window_user)
         window_user.mainloop()
 
@@ -148,7 +148,7 @@ class userGUI:
         self.master['padx'] = 10
         self.master['pady'] = 10
 
-        if type ==0:
+        if type == 0:
             self.btn_detail = Button(self.master, text = "Detail", font=(None, 12), command = partial(self.detail, self.master))
             self.btn_detail.grid(column = 0, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
         else:
@@ -341,10 +341,10 @@ class detailGUI:
         self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 0)
 
         if type == 1:
-            self.btn_addGoal = Button(self.master, text = "Add goal", font=(None, 12))
+            self.btn_addGoal = Button(self.master, text = "Add goal", font=(None, 12), command = partial(self.addEvent, match, 0, self.master))
             self.btn_addGoal.place(x = 10, y = 30)
 
-            self.btn_addTag = Button(self.master, text = "Add tag", font=(None, 12))
+            self.btn_addTag = Button(self.master, text = "Add tag", font=(None, 12), command = partial(self.addEvent, match, 1, self.master))
             self.btn_addTag.place(x = 100, y = 30)
 
         # columns
@@ -401,6 +401,103 @@ class detailGUI:
         self.master.destroy()
         self.parent.focus()
         self.parent.grab_set()
+        windowsGlo.remove(self.master)
+
+    def addEvent(self, match, type, parent):
+        window_addEvent = Toplevel(self.master)
+        addEventGUI(window_addEvent, type, parent, self.services, match)
+        center(window_addEvent)
+        window_addEvent.mainloop()
+
+class addEventGUI:
+    def __init__(self, master, type, parent, services, match):
+        windowsGlo.append(master)
+        self.services = services
+        self.master = master
+        if type == 0:
+            self.master.title("Add goal")
+        else:
+            self.master.title("Add tag")
+        # self.master.resizable(0, 0)
+        self.master.focus()
+        self.master.grab_set()
+        self.master['padx'] = 10
+        self.master['pady'] = 10
+        self.parent = parent
+
+        self.master.columnconfigure(0, weight=1)
+        self.master.columnconfigure(1, weight=1)
+        self.master.columnconfigure(2, weight=1)
+
+        self.lbl_team = Label(self.master, text = 'Team')
+        self.lbl_team.grid(column = 0, row = 0, sticky = W)
+
+        self.teams = (match[2], match[4])
+        self.selected_team = tk.StringVar()
+        self.cbb_team = ttk.Combobox(self.master, textvariable = self.selected_team)
+        self.cbb_team['values'] = self.teams
+        self.cbb_team.current(0)
+        self.cbb_team['state'] = 'readonly'  # normal
+        self.cbb_team.grid(column = 0, row = 1, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+        self.lbl_player = Label(self.master, text = 'Player')
+        self.lbl_player.grid(column = 0, row = 2, sticky = W)
+
+        self.txt_player = Entry(self.master)
+        self.txt_player.grid(column = 0, row = 3, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+        self.lbl_time = Label(self.master, text = 'Time')
+        self.lbl_time.grid(column = 0, row = 7, sticky = W)
+
+        self.isCheck = tk.IntVar()
+        self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+        self.checkbox.select()
+        self.checkbox.place( x = 35, y = 143)
+
+        self.txt_time = Entry(self.master)
+        self.txt_time.insert(-1, 'now')
+        self.txt_time.config(state = 'disabled')
+        self.txt_time.config(state = 'readonly')
+        self.txt_time.grid(column = 0, row = 8, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+        if type == 1:
+            self.lbl_tag = Label(self.master, text = 'Tag')
+            self.lbl_tag.grid(column = 0, row = 4, sticky = W)
+
+            self.tags = ('Yellow card', 'Red card')
+            self.selected_tag = tk.StringVar()
+            self.cbb_tag = ttk.Combobox(self.master, textvariable = self.selected_tag)
+            self.cbb_tag['values'] = self.tags
+            self.cbb_tag.current(0)
+            self.cbb_tag['state'] = 'readonly'  # normal
+            self.cbb_tag.grid(column = 0, row = 5, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+        self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
+        self.btn_add.grid(row = 10, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+
+        self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
+        self.btn_cancel.grid(row = 10, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
+
+        col_count, row_count = self.master.grid_size()
+        for col in range(col_count):
+            self.master.grid_columnconfigure(col, minsize = 70)
+        for row in range(row_count):
+            self.master.grid_rowconfigure(row, minsize = 20)
+
+    def checker(self):
+        if self.isCheck.get() == 0:
+            self.txt_time.config(state = 'normal')
+            self.txt_time.delete(0, END)
+        if self.isCheck.get() == 1:
+            self.txt_time.delete(0, END)
+            self.txt_time.insert(-1, 'now')
+            self.txt_time.config(state = 'disabled')
+            self.txt_time.config(state = 'readonly')
+
+    def add(self):
+        pass
+    def cancel(self):
+        self.master.destroy()
         windowsGlo.remove(self.master)
 
 # class adminGUI:
