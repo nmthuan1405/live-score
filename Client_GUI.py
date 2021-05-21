@@ -1,3 +1,4 @@
+from doctest import master
 import tkinter as tk
 from tkinter import ttk
 from tkinter import *
@@ -119,7 +120,7 @@ class ClientGUI:
 
     def signIn(self):
         window_user = Toplevel(self.master)
-        userGUI(window_user, 1, self.services)  #0: user    1: admin
+        userGUI(window_user, 0, self.services)  #0: user    1: admin
         center(window_user)
         window_user.mainloop()
 
@@ -154,14 +155,14 @@ class userGUI:
             self.btn_edit = Button(self.master, text = "Edit match", font=(None, 12), command = partial(self.edit, self.master))
             self.btn_edit.grid(column = 0, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
 
-            self.btn_add = Button(self.master, text = "Add match", font=(None, 12))
+            self.btn_add = Button(self.master, text = "Add match", font=(None, 12), command = partial(self.addMatch, self.master))
             self.btn_add.grid(column = 1, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
 
             self.btn_delete = Button(self.master, text = "Delete match", font=(None, 12))
             self.btn_delete.grid(column = 2, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
 
-        self.btn_logout = Button(self.master, text = "Log out", font=(None, 12))
-        self.btn_logout.grid(column = 4, row = 0, sticky = tk.E, padx = 0, pady = 0, ipadx = 10, ipady = 5)
+        self.btn_signOut = Button(self.master, text = "Sign out", font=(None, 12), command = self.signOut)
+        self.btn_signOut.grid(column = 4, row = 0, sticky = tk.E, padx = 0, pady = 0, ipadx = 10, ipady = 5)
 
         # columns
         columns = ('#1', '#2', '#3', '#4', '#5')
@@ -174,9 +175,9 @@ class userGUI:
         #config column width
         self.tree.column("#1", anchor = 'center', minwidth = 50, width = 50)
         self.tree.column("#2", anchor = 'center', minwidth = 50, width = 80)
-        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 150)
+        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 200)
         self.tree.column("#4", anchor = 'center', minwidth = 50, width = 80)
-        self.tree.column("#5", anchor = 'center', minwidth = 50, width = 150)
+        self.tree.column("#5", anchor = 'center', minwidth = 50, width = 200)
 
         # define headings
         self.tree.heading('#1', text='ID')
@@ -195,7 +196,7 @@ class userGUI:
         # add data
         contacts = []
         contacts.append(('1', '22:10', 'Verona', '1 - 1', 'Bologna'))
-
+        contacts.append(('2', '17:00', 'Campbelltown City', '2 - 1', 'North Eastern Metro Stars'))
         for contact in contacts:
             self.tree.insert('', tk.END, values=contact)
         
@@ -224,6 +225,85 @@ class userGUI:
         detailGUI(window_edit, 1, parent, self.services, match)
         center(window_edit)
         window_edit.mainloop()
+
+    def addMatch(self, parent):
+        window_addMatch = Toplevel(self.master)
+        addMatchGUI(window_addMatch, parent, self.services)
+        center(window_addMatch)
+        window_addMatch.mainloop()
+
+    def signOut(self):
+        self.master.destroy()
+        windowsGlo.remove(self.master)
+
+class addMatchGUI:
+    def __init__(self, master, parent, services):
+        windowsGlo.append(master)
+        self.services = services
+        self.master = master
+        self.master.title("Add match")
+        # self.master.resizable(0, 0)
+        self.master.focus()
+        self.master.grab_set()
+        self.master['padx'] = 10
+        self.master['pady'] = 10
+
+        self.parent = parent
+
+        self.master.columnconfigure(0, weight=1)
+        self.master.columnconfigure(1, weight=1)
+        self.master.columnconfigure(2, weight=1)
+
+        self.lbl_ID = Label(self.master, text = 'ID')
+        self.lbl_ID.grid(row = 0, column = 0, sticky = W)
+
+        self.txt_ID = Entry(self.master)
+        self.txt_ID.focus()
+        self.txt_ID.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
+
+        self.lbl_team1 = Label(self.master, text = 'Team 1')
+        self.lbl_team1.grid(row = 2, column = 0, sticky = W)
+
+        self.txt_team1 = Entry(self.master)
+        self.txt_team1.grid(row = 3, column = 0, columnspan = 3, sticky = EW, padx = 0)
+
+        self.lbl_team2 = Label(self.master, text = 'Team 2')
+        self.lbl_team2.grid(row = 4, column = 0, sticky = W)
+
+        self.txt_team2 = Entry(self.master)
+        self.txt_team2.grid(row = 5, column = 0, columnspan = 3, sticky = EW, padx = 0)
+
+        self.lbl_time = Label(self.master, text = 'Time')
+        self.lbl_time.grid(row = 6, column = 0, sticky = W)
+
+        self.txt_time = Entry(self.master)
+        self.txt_time.grid(row = 7, column = 0, columnspan = 3, sticky = EW, padx = 0)
+
+        self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
+        self.btn_add.grid(row = 9, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+
+        self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
+        self.btn_cancel.grid(row = 9, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
+
+        col_count, row_count = self.master.grid_size()
+        for col in range(col_count):
+            self.master.grid_columnconfigure(col, minsize = 70)
+        for row in range(row_count):
+            self.master.grid_rowconfigure(row, minsize = 15)
+
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def on_closing(self):
+        self.master.destroy()
+        self.parent.focus()
+        self.parent.grab_set()
+        windowsGlo.remove(self.master)
+
+    def add(self):
+        pass
+    def cancel(self):
+        self.master.destroy()
+        windowsGlo.remove(self.master)
 
 class detailGUI:
     def __init__(self, master, type, parent, services, match):
@@ -258,7 +338,7 @@ class detailGUI:
 
         self.lbl_team2 = Label(self.master, text = match[4], font=(None, 14))
         self.master.update()
-        self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_score.winfo_reqwidth()/2), y = 0)
+        self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 0)
 
         if type == 1:
             self.btn_addGoal = Button(self.master, text = "Add goal", font=(None, 12))
