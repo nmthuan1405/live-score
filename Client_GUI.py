@@ -37,6 +37,10 @@ class ClientGUI:
         self.master.columnconfigure(1, weight=2)
         self.master.columnconfigure(2, weight=1)
 
+        self.master.bind('<Return>', self.handleReturn)
+        self.master.bind('<Tab>', self.handleTab)
+        self.master.bind('<Escape>', self.handleEsc)
+
         self.lbl_Title = Label(self.master, text = "LIVE SCORE", font=("Helvetica", 20))
         self.lbl_Title.grid(column = 0, row = 0, columnspan = 3, sticky = tk.N, padx = 0, pady = 0)
 
@@ -48,27 +52,30 @@ class ClientGUI:
         self.txt_IP_input.focus()
         self.txt_IP_input.grid(column = 0, row = 2, columnspan = 2, sticky = EW, padx = 0)
 
-        self.btn_connect = Button(self.master, text="Connect", command = self.connect)
-        self.btn_connect.grid(column=2, row=2, sticky = tk.E, padx = 0, pady = 0, ipadx = 10)
-        self.master.bind('<Return>', self.callback)
+        self.btn_connect = Button(self.master, text="Connect", width = 10, command = self.connect)
+        self.btn_connect.grid(column=2, row=2, sticky = tk.E, padx = 0, pady = 0)
 
         self.lbl_User = Label(self.master, text = "Username")
         self.lbl_User.grid(column = 0, row = 4, sticky = tk.W, padx = 0, pady = 0)
 
         self.txt_User = Entry(self.master)
         self.txt_User.grid(column = 0, row = 5, columnspan = 3, sticky = EW)
+        self.txt_User.config(state = 'disabled')
 
         self.lbl_Password = Label(self.master, text = "Password")
         self.lbl_Password.grid(column = 0, row = 6, sticky = tk.W, padx = 0, pady = 0)
 
         self.txt_Password = Entry(self.master, show = "*")
         self.txt_Password.grid(column = 0, row = 7, columnspan = 3, sticky = EW)
+        self.txt_Password.config(state = 'disabled')
 
         self.btn_SignUp = Button(self.master, text="Sign Up", command = self.signUp)
         self.btn_SignUp.grid(column=0, row=9, rowspan = 2, sticky = tk.SW, padx = 0, pady = 0, ipadx = 10)
+        self.btn_SignUp.config(state = 'disabled')
 
         self.btn_SignIn = Button(self.master, text="Sign In", command = self.signIn)
         self.btn_SignIn.grid(column=1, row=9, rowspan = 2, sticky = tk.SW, padx = 0, pady = 0, ipadx = 10)
+        self.btn_SignIn.config(state = 'disabled')
 
         self.btn_Exit = Button(self.master, text="Exit", command = self.exit)
         self.btn_Exit.grid(column=2, row=9, rowspan = 2, sticky = tk.SE, padx = 0, pady = 0, ipadx = 10)
@@ -104,6 +111,12 @@ class ClientGUI:
                 self.txt_IP_input.config(state = 'disabled')
                 self.btn_connect.config(text = 'Disconnect')
                 showinfo("Sucess", "Connect to server sucessfully", parent = self.master)
+
+                self.txt_User.config(state = 'normal')
+                self.txt_Password.config(state = 'normal')
+                self.btn_SignUp.config(state = 'normal')
+                self.btn_SignIn.config(state = 'normal')
+                self.txt_User.focus()
         
         else:
             self.services.s_close()
@@ -112,8 +125,27 @@ class ClientGUI:
             self.txt_IP_input.config(state = 'normal')
             self.btn_connect.config(text = 'Connect')
 
-    def callback(self, event):
-        self.connect()
+            self.txt_User.config(state = 'disabled')
+            self.txt_Password.config(state = 'disabled')
+            self.btn_SignUp.config(state = 'disabled')
+            self.btn_SignIn.config(state = 'disabled')
+            self.txt_IP_input.focus()
+
+    def handleReturn(self, event):
+        if self.master.focus_get() == self.txt_IP_input or self.master.focus_get() == self.btn_connect:
+            self.connect()
+        elif self.master.focus_get() == self.txt_User or self.master.focus_get() == self.txt_Password or self.master.focus_get() == self.btn_SignIn:
+            self.signIn()
+        elif self.master.focus_get() == self.btn_SignUp:
+            self.signUp()
+        elif self.master.focus_get() == self.btn_Exit:
+            self.exit()
+
+    def handleTab(self, event):
+        pass    # khong can code gi het
+
+    def handleEsc(self, event):
+        self.exit()
 
     def signUp(self):
         check = self.services.s_auth(self.txt_User.get(), self.txt_Password.get(), 'signUp')
