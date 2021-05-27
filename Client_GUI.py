@@ -533,7 +533,7 @@ class detailGUI:
             self.master.title("Edit match")
         # self.master.resizable(0, 0)
         self.master.focus()
-        # self.master.grab_set()
+        # self.master.grab_set()    # Bo lock parent GUI
         self.master['padx'] = 10
         self.master['pady'] = 10
 
