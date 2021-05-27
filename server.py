@@ -24,6 +24,9 @@ class Server:
 
         self.server_thread = threading.Thread(target = self.addClient)
         self.server_thread.start()
+        self.writeLog('Start add client thread')
+        db.start()
+        self.writeLog('Start database thread')
 
     def stop(self):
         self.writeLog('STOP SERVER')
@@ -43,6 +46,8 @@ class Server:
             server.close()
         finally:
             self.server_thread.join()
+            db.stop()
+            self.writeLog('Exit database thread')
 
     def clientCount(self):
         count = 0
@@ -187,8 +192,7 @@ class Client:
         return self.send(obj)
 
     def writeLog(self, data):
-        self.log.put(f'({self.addr[0]}, {self.addr[1]}): ' +  data
-        )
+        self.log.put(f'({self.addr[0]}, {self.addr[1]}): ' +  data)
 
     def c_signIn(self):
         User = self.recv_str()
