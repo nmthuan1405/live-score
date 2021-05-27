@@ -6,6 +6,7 @@ from tkinter.font import BOLD
 from tkinter.messagebox import showerror, showinfo, askokcancel
 from tkinter import scrolledtext
 from functools import partial
+import client
 
 windowsGlo = list()
 
@@ -24,7 +25,7 @@ def center(toplevel):
 
 class ClientGUI:
     def __init__(self, master):
-        master.report_callback_exception = self.report_callback_exception
+        #master.report_callback_exception = self.report_callback_exception
         self.services = None
         self.master = master
         self.master.title("Client")
@@ -84,43 +85,51 @@ class ClientGUI:
     
     def report_callback_exception(self, *args):
         self.services = None
-        for windows in windowsGlo:
-            windows.destroy()
+        # for windows in windowsGlo:
+        #     windows.destroy()
 
         self.txt_IP_input.config(state = 'normal')
         self.btn_connect.config(text = 'Connect')
         # showerror(title = 'Error', message = 'Lost connection')
 
     def connect(self):
-        pass
-        # if self.services == None:
-        #     try:
-        #         self.services = client.ClientServices(self.txt_IP_input.get())
-        #         self.services.connectServer()
-        #     except:
-        #         showerror(title = 'Error', message = 'Cannot connect to server.', parent = self.master)
-        #         self.services = None
-        #     else:
-        #         self.txt_IP_input.config(state = 'disabled')
-        #         self.btn_connect.config(text = 'Disconnect')
-        #         showinfo("Sucess", "Connect to server sucessfully", parent = self.master)
+        if self.services == None:
+            try:
+                self.services = client.Client(self.txt_IP_input.get())
+                self.services.connect()
+            except:
+                showerror(title = 'Error', message = 'Cannot connect to server.', parent = self.master)
+                self.services = None
+            else:
+                self.txt_IP_input.config(state = 'disabled')
+                self.btn_connect.config(text = 'Disconnect')
+                showinfo("Sucess", "Connect to server sucessfully", parent = self.master)
         
-        # else:
-        #     self.services.sendCloseConection()
-        #     self.services = None
+        else:
+            self.services.s_close()
+            self.services = None
 
-        #     self.txt_IP_input.config(state = 'normal')
-        #     self.btn_connect.config(text = 'Connect')
+            self.txt_IP_input.config(state = 'normal')
+            self.btn_connect.config(text = 'Connect')
 
     def callback(self, event):
         self.connect()
 
     def signUp(self):
-        pass
+        check = self.services.s_auth(self.txt_User.get(), self.txt_Password.get(), 'signUp')
+        if check:
+            showinfo('Sucess', 'Sign up sucessfully', parent = self.master)
+        else:
+            showerror('Error', 'Unable create account', parent = self.master)
 
     def signIn(self):
+        self.services.isAdmin = self.services.s_auth(self.txt_User.get(), self.txt_Password.get(), 'signIn')
+        if self.services.isAdmin is None:
+            showerror(title = 'Error', message = 'Invalid username or password', parent = self.master)
+            return
+
         window_user = Toplevel(self.master)
-        userGUI(window_user, 1, self.services)  #0: user    1: admin
+        userGUI(window_user, self.master, self.services)
         center(window_user)
         window_user.mainloop()
 
@@ -129,29 +138,32 @@ class ClientGUI:
             if not askokcancel("Exit", "Client is connecting.\nDo you want to disconnect?"):
                 return
             
-            # self.services.sendCloseConection()
+            self.services.s_close()
             
         self.master.destroy()
 
 class userGUI:
-    def __init__(self, master, type, services):
+    def __init__(self, master, parent, services):
         windowsGlo.append(master)
+
         self.master = master
+        self.parent = parent
         self.services = services
-        if type == 0:
-            self.master.title("User")
-        else:
+
+        self.parent.withdraw()
+
+        if self.services.isAdmin:\
             self.master.title("Administrator")
+        else:
+            self.master.title("User")
         # self.master.resizable(0, 0)
+
         self.master.focus()
         self.master.grab_set()
         self.master['padx'] = 10
         self.master['pady'] = 10
 
-        if type == 0:
-            self.btn_detail = Button(self.master, text = "Detail", font=(None, 12), command = partial(self.detail, self.master))
-            self.btn_detail.grid(column = 0, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
-        else:
+        if self.services.isAdmin:
             self.btn_edit = Button(self.master, text = "Edit match", font=(None, 12), command = partial(self.edit, self.master))
             self.btn_edit.grid(column = 0, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
 
@@ -160,6 +172,9 @@ class userGUI:
 
             self.btn_delete = Button(self.master, text = "Delete match", font=(None, 12))
             self.btn_delete.grid(column = 2, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
+        else:
+            self.btn_detail = Button(self.master, text = "Detail", font=(None, 12), command = partial(self.detail, self.master))
+            self.btn_detail.grid(column = 0, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
 
         self.btn_signOut = Button(self.master, text = "Sign out", font=(None, 12), command = self.signOut)
         self.btn_signOut.grid(column = 4, row = 0, sticky = tk.E, padx = 0, pady = 0, ipadx = 10, ipady = 5)
@@ -200,11 +215,7 @@ class userGUI:
         for contact in contacts:
             self.tree.insert('', tk.END, values=contact)
         
-        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-    def on_closing(self):
-        self.master.destroy()
-        windowsGlo.remove(self.master)
+        self.master.protocol("WM_DELETE_WINDOW", self.signOut)
 
     def detail(self, parent):
         match = self.tree.item(self.tree.focus())['values']
@@ -233,8 +244,12 @@ class userGUI:
         window_addMatch.mainloop()
 
     def signOut(self):
+        self.services.s_signOut()
+
         self.master.destroy()
         windowsGlo.remove(self.master)
+
+        self.parent.deiconify()
 
 class addMatchGUI:
     def __init__(self, master, parent, services):

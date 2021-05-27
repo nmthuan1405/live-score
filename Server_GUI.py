@@ -2,11 +2,14 @@ from tkinter import *
 import tkinter as tk
 from tkinter.messagebox import askokcancel, showerror
 from tkinter import scrolledtext
+import server
+from queue import SimpleQueue
 
 class Server_GUI:
     def __init__(self, master):
         self.services = None
         self.master = master
+        self.msg = SimpleQueue()
         self.master.title("Server")
         self.master['padx'] = 10
         self.master['pady'] = 10
@@ -32,14 +35,38 @@ class Server_GUI:
 
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-    def start(self):
-        pass
+        self.monitor_queue()
 
-    def writeLog(self, data):
-        self.result_area.config(state='normal')
-        self.result_area.insert(INSERT, data + '\n')
-        self.result_area.config(state='disabled')
-        self.result_area.see('end')
+    def monitor_queue(self):
+        while not self.msg.empty():
+            data = self.msg.get()
+            self.result_area.config(state='normal')
+            self.result_area.insert(INSERT, data + '\n')
+            self.result_area.config(state='disabled')
+            self.result_area.see('end')
+
+        self.master.after(100, self.monitor_queue)
+
+    def start(self):
+        if self.services is None:
+            try:
+                self.services = server.Server(self.msg)
+                self.services.start()
+            except:
+                self.services = None
+                showerror('Error', 'Unable to start server', parent = self.master)
+            else:
+                self.btn_start.config(text = "Stop Server")
+
+        else:
+            count = self.services.clientCount()
+            if count > 0 and not askokcancel("Stop", f"{count} client(s) is connecting.\nDo you really want to stop server?"):
+                return
+
+            self.services.stop()
+            self.services = None
+            
+            self.btn_start.config(text = "Start Server")
 
     def clear(self):
         self.result_area.config(state = 'normal')
@@ -47,6 +74,17 @@ class Server_GUI:
         self.result_area.config(state = 'disabled')
 
     def on_closing(self):
+        if self.services is not None:
+            if askokcancel("Quit", "Server is running.\nDo you want to quit?"):
+                count = self.services.clientCount()
+                
+                if count > 0 and not askokcancel("Stop", f"{count} client(s) is connecting.\nDo you really want to exit?"):
+                    return
+
+                self.services.stop()
+            else:
+                return
+
         self.master.destroy()
 
 
