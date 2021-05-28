@@ -6,6 +6,7 @@ from tkinter.font import BOLD
 from tkinter.messagebox import showerror, showinfo, askokcancel
 from tkinter import scrolledtext
 from functools import partial
+from tkcalendar import Calendar, DateEntry
 import client
 
 windowsGlo = list()
@@ -198,24 +199,34 @@ class userGUI:
         self.master['padx'] = 10
         self.master['pady'] = 10
 
+        self.lbl_date = Label(self.master, text='Choose date:')
+        self.lbl_date.place(x = 0, y = 0)
+
+        self.txt_date = DateEntry(self.master, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.txt_date.place(x = 80, y = 0)
+
+        self.isCheck = tk.IntVar()
+        self.allDate = tk.Checkbutton(self.master, text = 'All Date', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+        self.allDate.place(x = 180, y = 0)
+
         if self.services.isAdmin:
-            self.btn_edit = Button(self.master, text = "Edit match", width = 12, height = 2, command = partial(self.edit, self.master))
-            self.btn_edit.grid(column = 1, row = 0, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
+            self.btn_edit = Button(self.master, text = "Edit match", width = 12, height = 1, command = partial(self.edit, self.master))
+            self.btn_edit.grid(column = 1, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
 
-            self.btn_add = Button(self.master, text = "Add match", width = 12, height = 2, command = partial(self.addMatch, self.master))
-            self.btn_add.grid(column = 2, row = 0, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
+            self.btn_add = Button(self.master, text = "Add match", width = 12, height = 1, command = partial(self.addMatch, self.master))
+            self.btn_add.grid(column = 2, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
 
-            self.btn_delete = Button(self.master, text = "Delete match", width = 12, height = 2, command = self.delete)
-            self.btn_delete.grid(column = 3, row = 0, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
+            self.btn_delete = Button(self.master, text = "Delete match", width = 12, height = 1, command = self.delete)
+            self.btn_delete.grid(column = 3, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
 
-            self.btn_editAccount = Button(self.master, text = "Edit account", width = 12, height = 2, command = partial(self.editAccount, self.master))
-            self.btn_editAccount.grid(column = 5, row = 0, sticky = tk.E, padx = 0, pady = 0, ipady = 0)
+            self.btn_editAccount = Button(self.master, text = "Edit account", width = 12, height = 1, command = partial(self.editAccount, self.master))
+            self.btn_editAccount.grid(column = 5, row = 1, sticky = tk.E, padx = 0, pady = 0, ipady = 0)
 
-        self.btn_detail = Button(self.master, text = "Match detail", width = 12, height = 2, command = partial(self.detail, self.master))
-        self.btn_detail.grid(column = 0, row = 0, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
+        self.btn_detail = Button(self.master, text = "Match detail", width = 12, height = 1, command = partial(self.detail, self.master))
+        self.btn_detail.grid(column = 0, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
 
-        self.btn_signOut = Button(self.master, text = "Sign out", width = 12, height = 2, command = self.signOut)
-        self.btn_signOut.grid(column = 6, row = 0, sticky = tk.E, padx = 0, pady = 0, ipady = 0)
+        self.btn_signOut = Button(self.master, text = "Sign out", width = 12, height = 1, command = self.signOut)
+        self.btn_signOut.grid(column = 6, row = 1, sticky = tk.E, padx = 0, pady = 0, ipady = 0)
 
         # columns
         columns = ('#1', '#2', '#3', '#4', '#5')
@@ -239,12 +250,12 @@ class userGUI:
         self.tree.heading('#4', text='Score')
         self.tree.heading('#5', text='Team 2')
 
-        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 7, sticky='nsew')
+        self.tree.grid(row = 2, column = 0, padx = 0, pady = 5, columnspan = 7, sticky='nsew')
 
         # add a scrollbar
         self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
         self.tree.configure(yscroll = self.scrollbar.set)
-        self.scrollbar.grid(row = 1, column = 7, padx = 0, pady = 5, sticky = 'ns')
+        self.scrollbar.grid(row = 2, column = 7, padx = 0, pady = 5, sticky = 'ns')
 
         # add data
         contacts = []
@@ -253,7 +264,25 @@ class userGUI:
         for contact in contacts:
             self.tree.insert('', tk.END, values=contact)
         
+        col_count, row_count = self.master.grid_size()
+        for col in range(col_count):
+            self.master.grid_columnconfigure(col, minsize = 0)
+        for row in range(row_count):
+            self.master.grid_rowconfigure(row, minsize = 30)
+
         self.master.protocol("WM_DELETE_WINDOW", self.signOut)
+
+        def dateChanged(event):
+            selectedDate = self.txt_date.get_date()
+            self.allDate.deselect()
+        self.txt_date.bind('<<DateEntrySelected>>', dateChanged)
+
+    def checker(self):
+        if self.isCheck.get() == 0:
+            self.txt_date.config(state = 'normal')
+            # khi bo chon all date thi hien thi lai ds tran dau cua ngay trong txt_date
+        if self.isCheck.get() == 1:
+            self.txt_date.config(state = 'disabled')
 
     def detail(self, parent):
         match = self.tree.item(self.tree.focus())['values']
@@ -404,6 +433,12 @@ class editAccountGUI:
         self.btn_edit = Button(self.master, text="Edit", command = partial(self.edit, self.master), width = 8)
         self.btn_edit.grid(row = 0, column = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
 
+        self.btn_add = Button(self.master, text="Add", command = partial(self.add, self.master), width = 8)
+        self.btn_add.grid(row = 0, column = 1, padx = 0, pady = 0, ipadx = 0)
+
+        self.btn_delete = Button(self.master, text="Delete", command = self.delete, width = 8)
+        self.btn_delete.grid(row = 0, column = 2, sticky = tk.E, padx = 0, pady = 0, ipadx = 0)
+
         # columns
         columns = ('#1', '#2', '#3')
         self.tree = ttk.Treeview(self.master, columns = columns, show = 'headings', height = 20)
@@ -422,12 +457,12 @@ class editAccountGUI:
         self.tree.heading('#2', text='Password')
         self.tree.heading('#3', text='Is admin')
 
-        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 1, sticky='nsew')
+        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 3, sticky='nsew')
 
         # add a scrollbar
         self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
         self.tree.configure(yscroll = self.scrollbar.set)
-        self.scrollbar.grid(row = 1, column = 1, padx = 0, pady = 5, sticky = 'ns')
+        self.scrollbar.grid(row = 1, column = 3, padx = 0, pady = 5, sticky = 'ns')
 
         # add data
         contacts = []
@@ -448,6 +483,15 @@ class editAccountGUI:
         center(window_edit)
         window_edit.mainloop()
 
+    def add(self, parent):
+        window_add = Toplevel(self.master)
+        editGUI(window_add, parent, self.services, None)
+        center(window_add)
+        window_add.mainloop()
+
+    def delete(self):
+        pass
+
     def on_closing(self):
         self.master.destroy()
         self.parent.focus()
@@ -459,7 +503,10 @@ class editGUI:
         windowsGlo.append(master)
         self.services = services
         self.master = master
-        self.master.title("Edit Account")
+        if account is not None:
+            self.master.title("Edit Account")
+        else:
+            self.master.title("Add Account")
         # self.master.resizable(0, 0)
         self.master.focus()
         self.master.grab_set()
@@ -478,32 +525,37 @@ class editGUI:
         self.txt_user = Entry(self.master)
         self.txt_user.focus()
         self.txt_user.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        self.txt_user.insert(-1, account[0])
 
         self.lbl_pass = Label(self.master, text = 'Password')
         self.lbl_pass.grid(row = 2, column = 0, sticky = W)
 
         self.txt_pass = Entry(self.master)
         self.txt_pass.grid(row = 3, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        self.txt_pass.insert(-1, account[1])
 
         self.isCheck = tk.IntVar()
         self.isAdmin = tk.Checkbutton(self.master, text = 'Is admin', variable = self.isCheck, onvalue = 1, offvalue = 0)
-        if account[2] == 'Yes':
-            self.isAdmin.select()
         self.isAdmin.grid(row = 4, column = 0, sticky = W)
         # De lay gia tri checkbox:
         # self.isCheck.get() == 1   #1: la admin
 
-        self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
-        self.btn_change.grid(row = 6, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
-
         self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
         self.btn_cancel.grid(row = 6, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
 
+        if account is not None:
+            self.txt_user.insert(-1, account[0])
+            self.txt_pass.insert(-1, account[1])
+            if account[2] == 'Yes':
+                self.isAdmin.select()
+
+            self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
+            self.btn_change.grid(row = 6, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+        else:
+            self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
+            self.btn_add.grid(row = 6, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+
         col_count, row_count = self.master.grid_size()
         for col in range(col_count):
-            self.master.grid_columnconfigure(col, minsize = 72)
+            self.master.grid_columnconfigure(col, minsize = 73)
         for row in range(row_count):
             self.master.grid_rowconfigure(row, minsize = 15)
 
@@ -516,6 +568,9 @@ class editGUI:
         windowsGlo.remove(self.master)
 
     def change(self):
+        pass
+
+    def add(self):
         pass
 
     def cancel(self):
@@ -540,29 +595,35 @@ class detailGUI:
         self.parent = parent
 
         self.lbl_ID = Label(self.master, text = match[0], font=(None, 12))
-        self.lbl_ID.place(x = 10, y = 0)
 
         self.lbl_time = Label(self.master, text = match[1], font=(None, 12))
-        self.lbl_time.place( x = 50, y = 0)
 
         self.lbl_team1 = Label(self.master, text = match[2], font=(None, 14))
-        self.master.update()
-        self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 0)
 
         self.lbl_score = Label(self.master, text = match[3], font=(None, 14))
-        self.master.update()
-        self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 0)
 
         self.lbl_team2 = Label(self.master, text = match[4], font=(None, 14))
-        self.master.update()
-        self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 0)
 
         if type == 1:
-            self.btn_addGoal = Button(self.master, text = "Add goal", width = 10, height = 2, command = partial(self.addEvent, match, 0, self.master))
-            self.btn_addGoal.place(x = 10, y = 30)
+            self.btn_addGoal = Button(self.master, text = "Add goal", width = 10, height = 1, command = partial(self.addEvent, match, 0, self.master))
+            self.btn_addGoal.place(x = 10, y = 0)
 
-            self.btn_addTag = Button(self.master, text = "Add tag", width = 10, height = 2, command = partial(self.addEvent, match, 1, self.master))
-            self.btn_addTag.place(x = 100, y = 30)
+            self.btn_addTag = Button(self.master, text = "Add tag", width = 10, height = 1, command = partial(self.addEvent, match, 1, self.master))
+            self.btn_addTag.place(x = 100, y = 0)
+
+            self.lbl_ID.place(x = 10, y = 30)
+            self.lbl_time.place( x = 50, y = 30)
+            self.master.update()
+            self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 30)
+            self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 30)
+            self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 30)
+        else:
+            self.lbl_ID.place(x = 10, y = 0)
+            self.lbl_time.place( x = 50, y = 0)
+            self.master.update()
+            self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 0)
+            self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 0)
+            self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 0)
 
         # columns
         columns = ('#1', '#2', '#3', '#4', '#5', '#6')
@@ -610,7 +671,7 @@ class detailGUI:
             self.master.grid_columnconfigure(col, minsize = 0)
         
         for row in range(row_count):
-            self.master.grid_rowconfigure(row, minsize = 35)
+            self.master.grid_rowconfigure(row, minsize = 30)
 
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
@@ -717,158 +778,6 @@ class addEventGUI:
         self.master.destroy()
         windowsGlo.remove(self.master)
 
-# class adminGUI:
-#     def __init__(self, master, services):
-#         windowsGlo.append(master)
-#         self.master = master
-#         self.services = services
-#         self.master.title("Administrator")
-#         # self.master.resizable(0, 0)
-#         self.master.focus()
-#         self.master.grab_set()
-#         self.master['padx'] = 10
-#         self.master['pady'] = 10
-
-#         self.btn_edit = Button(self.master, text = "Edit", command = partial(self.edit, self.master))
-#         self.btn_edit.grid(column = 0, row = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 20, ipady = 10)
-
-#         self.lbl_title = Label(self.master, text = 'Match List', font=("Helvetica", 16))
-#         self.lbl_title.grid(row = 0, column = 1, sticky = NS)
-
-#         self.btn_logout = Button(self.master, text = "Log out")
-#         self.btn_logout.grid(column = 2, row = 0, sticky = tk.E, padx = 0, pady = 0, ipadx = 20, ipady = 10)
-
-#         # columns
-#         columns = ('#1', '#2', '#3', '#4', '#5')
-#         self.tree = ttk.Treeview(self.master, columns = columns, show = 'headings', height = 20)
-
-#         #config column width
-#         self.tree.column("#1", anchor = 'center', minwidth = 50, width = 50)
-#         self.tree.column("#2", anchor = 'center', minwidth = 50, width = 100)
-#         self.tree.column("#3", anchor = 'center', minwidth = 50, width = 100)
-#         self.tree.column("#4", anchor = 'center', minwidth = 50, width = 50)
-#         self.tree.column("#5", anchor = 'center', minwidth = 50, width = 100)
-
-#         # define headings
-#         self.tree.heading('#1', text='ID')
-#         self.tree.heading('#2', text='Time')
-#         self.tree.heading('#3', text='Team 1')
-#         self.tree.heading('#4', text='Score')
-#         self.tree.heading('#5', text='Team 2')
-
-#         self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 3, sticky='nsew')
-
-#         # add a scrollbar
-#         self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
-#         self.tree.configure(yscroll = self.scrollbar.set)
-#         self.scrollbar.grid(row = 1, column = 3, padx = 0, pady = 5, sticky = 'ns')
-
-#         # add data
-#         contacts = []
-#         contacts.append(('1', '22:10', 'Verona', '1 - 1', 'Bologna'))
-
-#         for contact in contacts:
-#             self.tree.insert('', tk.END, values=contact)
-        
-#         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-#         self.btn_add = Button(self.master, text = "Add match")
-#         self.btn_add.grid(column = 0, row = 2, sticky = tk.E, padx = 0, pady = 0, ipadx = 10, ipady = 5)
-
-#         self.btn_delete = Button(self.master, text = "Delete match")
-#         self.btn_delete.grid(column = 2, row = 2, sticky = tk.W, padx = 0, pady = 0, ipadx = 10, ipady = 5)
-
-#     def on_closing(self):
-#         self.master.destroy()
-#         windowsGlo.remove(self.master)
-
-#     def edit(self, parent):
-#         match = self.tree.item(self.tree.focus())['values']
-#         if match == '':
-#             return
-
-#         window_edit = Toplevel(self.master)
-#         editGUI(window_edit, parent, self.services, match)
-#         center(window_edit)
-#         window_edit.mainloop()
-
-# class editGUI:
-#     def __init__(self, master, parent, services, match):
-#         windowsGlo.append(master)
-#         self.services = services
-#         self.master = master
-#         self.master.title("Edit match")
-#         # self.master.resizable(0, 0)
-#         self.master.focus()
-#         self.master.grab_set()
-#         self.master['padx'] = 10
-#         self.master['pady'] = 10
-
-#         self.parent = parent
-
-#         # self.lbl_ID = Label(self.master, text = match[0], font=("Helvetica", 14))
-#         # self.lbl_ID.grid(row = 0, column = 0)
-
-#         self.lbl_time = Label(self.master, text = match[1])
-#         self.lbl_time.grid(row = 0, column = 0)
-
-#         self.lbl_team1 = Label(self.master, text = match[2], font=("Helvetica", 14))
-#         self.lbl_team1.grid(row = 0, column = 1)
-
-#         self.lbl_score = Label(self.master, text = match[3], font=("Helvetica", 14))
-#         self.lbl_score.grid(row = 0, column = 2)
-
-#         self.lbl_team2 = Label(self.master, text = match[4], font=("Helvetica", 14))
-#         self.lbl_team2.grid(row = 0, column = 3)
-
-#         # columns
-#         columns = ('#1', '#2', '#3', '#4', '#5', '#6')
-#         self.tree = ttk.Treeview(self.master, columns = columns, show = 'headings', height = 20)
-
-#         #config column width
-#         self.tree.column("#1", anchor = 'center', minwidth = 50, width = 50)
-#         self.tree.column("#2", anchor = 'center', minwidth = 50, width = 100)
-#         self.tree.column("#3", anchor = 'center', minwidth = 50, width = 100)
-#         self.tree.column("#4", anchor = 'center', minwidth = 50, width = 50)
-#         self.tree.column("#5", anchor = 'center', minwidth = 50, width = 100)
-#         self.tree.column("#6", anchor = 'center', minwidth = 50, width = 100)
-
-#         # define headings
-#         self.tree.heading('#1', text='Time')
-#         self.tree.heading('#2', text='Team 1 player')
-#         self.tree.heading('#3', text='Event')
-#         self.tree.heading('#4', text='Score')
-#         self.tree.heading('#5', text='Event')
-#         self.tree.heading('#6', text='Team 2 player')
-
-#         self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 4, sticky='nsew')
-
-#         # add a scrollbar
-#         self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
-#         self.tree.configure(yscroll = self.scrollbar.set)
-#         self.scrollbar.grid(row = 1, column = 4, padx = 0, pady = 5, sticky = 'ns')
-
-#         self.btn_addGoal = Button(self.master, text = "Add goal")
-#         self.btn_addGoal.grid(column = 1, row = 2, padx = 0, pady = 0, ipadx = 10, ipady = 5)
-
-#         self.btn_addTag = Button(self.master, text = "Add tag")
-#         self.btn_addTag.grid(column = 2, row = 2, padx = 0, pady = 0, ipadx = 10, ipady = 5)
-
-#         # add data
-#         contacts = []
-#         contacts.append(("10'", 'A', 'Score', '1 - 0', '', ''))
-#         contacts.append(("20'", '', '', '1 - 1', 'Score', 'B'))
-
-#         for contact in contacts:
-#             self.tree.insert('', tk.END, values=contact)
-
-#         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-#     def on_closing(self):
-#         self.master.destroy()
-#         self.parent.focus()
-#         self.parent.grab_set()
-#         windowsGlo.remove(self.master)
 
 window_client = Tk()
 ClientGUI(window_client)
