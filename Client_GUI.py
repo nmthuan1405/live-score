@@ -12,6 +12,7 @@ import client
 import queue
 import uuid
 import threading
+from datetime import datetime
 
 windowsGlo = list()
 
@@ -190,7 +191,7 @@ class userGUI:
         self.parent = parent
         self.services = services
 
-        self.detailWindows = ()
+        self.detailWindows = []
         self.request = queue.Queue()
         self.client_thread = None
         self.result = {}
@@ -303,6 +304,8 @@ class userGUI:
                 res = self.services.s_editMatch(arg[0], arg[1], arg[2], arg[3])
             elif cmd == 'delMatch':
                 res = self.services.s_delMatch(arg)
+            elif cmd == 'getMatch':
+                res = self.services.s_getMatchID(arg)
             if cmd == 'exit':
                 break
 
@@ -362,12 +365,12 @@ class userGUI:
             return
 
         window_detail = Toplevel(self.master)
-        self.detailWindows.append(detailGUI(window_detail, parent, self.services, match))
+        self.detailWindows.append(detailGUI(window_detail, self, self.services, match))
         center(window_detail)
         window_detail.mainloop()
 
 
-    def edit(self, parent):
+    def edit(self):
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
             return
@@ -490,6 +493,21 @@ class addMatchGUI:
 
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        if match is not None:
+            data = self.parent.command('getMatch', match)
+            if data and len(data) == 1:
+                data = data[0]
+
+                self.txt_team1.insert(-1, data[2])
+                self.txt_team2.insert(-1, data[3])
+
+                date = datetime.strptime(data[1], '%Y-%m-%d %H:%M')
+                self.txt_date.set_date(date)
+                self.spinHour.delete(0, END)
+                self.spinHour.insert(-1, date.hour)
+                self.spinMin.delete(0, END)
+                self.spinMin.insert(-1, date.minute)
+
     def on_closing(self):
         self.master.destroy()
         self.parent.master.focus()
@@ -507,9 +525,22 @@ class addMatchGUI:
             self.txt_ID.config(state = 'readonly')
 
     def change(self):
-        pass
+        id = self.txt_ID.get()
+        team1 = self.txt_team1.get()
+        team2 = self.txt_team2.get()
+        hour = self.spinHour.get()
+        min = self.spinMin.get()
+
+        if team1 == '' or team2 == '':
+            showerror('Erorr', 'Invalid input')
+            return
+
+        time = str(self.txt_date.get_date()) + ' ' + hour + ':' + min
+        if not self.parent.command('editMatch', (id, team1, team2, time)):
+            showerror('Error', 'Unable to create new match')
 
     def add(self):
+
         id = self.txt_ID.get()
         team1 = self.txt_team1.get()
         team2 = self.txt_team2.get()
