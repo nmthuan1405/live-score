@@ -213,10 +213,12 @@ class userGUI:
         self.lbl_date.place(x = 0, y = 0)
 
         self.txt_date = DateEntry(self.master, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.txt_date.config(state = 'disabled')
         self.txt_date.place(x = 80, y = 0)
 
         self.isCheck = tk.IntVar()
         self.allDate = tk.Checkbutton(self.master, text = 'All Date', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+        self.allDate.select()
         self.allDate.place(x = 180, y = 0)
 
         if self.services.isAdmin:
@@ -439,11 +441,16 @@ class addMatchGUI:
         
         if (match is not None):
             self.txt_ID.insert(-1, match)
-            self.txt_ID.config(state = 'disabled')
+            self.txt_ID.config(state = 'readonly')
         else:
             self.txt_ID.grid(row = 1, column = 0, columnspan = 2, sticky = EW, padx = 0)
             self.isCheck = tk.IntVar()
             self.isDefault = tk.Checkbutton(self.master, text = 'Default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+            self.isDefault.select()
+
+            self.txt_ID.insert(-1, uuid.uuid4().hex)
+            self.txt_ID.config(state = 'readonly')
+
             self.isDefault.grid(row = 1, column = 2, sticky = E)
 
         self.lbl_team1 = Label(self.master, text = '1st Team')
