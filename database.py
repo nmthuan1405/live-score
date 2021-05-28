@@ -61,6 +61,21 @@ class Database:
     def deleteMatch(self, id):
         return self.command('update', "DELETE FROM match WHERE id = ?", (id,))
 
+    def getDetails(self, match):
+        return self.command('query', "SELECT * FROM detail WHERE match = ? ORDER BY datetime(time)", (match,))
+
+    def delDetails(self, match):
+        return self.command('update', "DELETE FROM detail WHERE match = ?", (match,))
+
+    def insertDetail(self, match, id, type, time, team, player):
+        return self.command('update', 'INSERT INTO detail VALUES (?, ?, ?, ?, ?, ?)', (match, id, time, type, team, player))
+
+    def editDetail(self, id, type, time, team, player):
+        return self.command('update', "UPDATE detail SET time = ?, type = ?, team = ?, player = ? WHERE id = ?", (time, type, team, player, id))
+
+    def delDetail(self, id):
+        return self.command('update', "DELETE FROM detail WHERE id = ?", (id,))
+
     def run(self):
         while True:
             id, req, cmd, val = self.request.get()
