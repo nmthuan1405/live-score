@@ -52,6 +52,9 @@ class Database:
     def getMatch(self):
         return self.command('query', 'SELECT * FROM match ORDER BY datetime(time)')
 
+    def getMatchID(self, id):
+        return self.command('query', "SELECT * FROM match WHERE id = ?", (id,))
+
     def editMatch(self, id, team1Name, team2Name, time):
         return self.command('update', "UPDATE match SET team1 = ?, team2 = ?, time = ?, isDone = 0 WHERE id = ?", (team1Name, team2Name, time, id))
 
@@ -69,10 +72,8 @@ class Database:
                     self.update(cmd, val)
                 elif req == 'exit':
                     break
-            except sqlite3.IntegrityError:
-                res = False
             except:
-                res = None
+                res = False
             finally:
                 self.result[id] = res
 

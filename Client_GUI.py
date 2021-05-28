@@ -219,10 +219,10 @@ class userGUI:
         self.allDate.place(x = 180, y = 0)
 
         if self.services.isAdmin:
-            self.btn_edit = Button(self.master, text = "Edit match", width = 12, height = 1, command = partial(self.edit, self.master))
+            self.btn_edit = Button(self.master, text = "Edit match", width = 12, height = 1, command = self.edit)
             self.btn_edit.grid(column = 1, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
 
-            self.btn_add = Button(self.master, text = "Add match", width = 12, height = 1, command = partial(self.addMatch, self.master))
+            self.btn_add = Button(self.master, text = "Add match", width = 12, height = 1, command = self.addMatch)
             self.btn_add.grid(column = 2, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
 
             self.btn_delete = Button(self.master, text = "Delete match", width = 12, height = 1, command = self.delete)
@@ -335,13 +335,25 @@ class userGUI:
         matches_tuple = self.command('listAll')
         matches = [list(ele) for ele in matches_tuple]
 
+        choosen = self.tree.item(self.tree.focus())['values']
         for row in self.tree.get_children():
             self.tree.delete(row)
             
         for match in matches:
             self.tree.insert('', tk.END, values = match[:-1])
+        
+        if choosen != '':
+            id = None
+            for row in self.tree.get_children():
+                if self.tree.item(row)['values'][0] == choosen[0]:
+                    id = row
+                    break
 
-        self.master.after(5000, self.updateMatch)
+            if id is not None: 
+                self.tree.selection_set(id)   
+                self.tree.focus(id)
+
+        self.master.after(1000, self.updateMatch)
 
     def detail(self, parent):
         match = self.tree.item(self.tree.focus())['values']
@@ -361,13 +373,13 @@ class userGUI:
             return
 
         window_edit = Toplevel(self.master)
-        addMatchGUI(window_edit, parent, self.services, match)
+        addMatchGUI(window_edit, self, self.services, match[0])
         center(window_edit)
         window_edit.mainloop()
 
-    def addMatch(self, parent):
+    def addMatch(self):
         window_addMatch = Toplevel(self.master)
-        addMatchGUI(window_addMatch, self, self.services, None)
+        addMatchGUI(window_addMatch, self, self.services)
         center(window_addMatch)
         window_addMatch.mainloop()
 
@@ -376,7 +388,7 @@ class userGUI:
         if match == '':
             return
 
-        if not self.command('delMatch', str(match[0])):
+        if not self.command('delMatch', match[0]):
             showerror('Error', 'Unable to delete match')        
 
     def editAccount(self, parent):
@@ -395,7 +407,7 @@ class userGUI:
         self.parent.deiconify()
 
 class addMatchGUI:
-    def __init__(self, master, parent, services, match):
+    def __init__(self, master, parent, services, match = None):
         windowsGlo.append(master)
         self.services = services
         self.master = master
@@ -421,8 +433,9 @@ class addMatchGUI:
         self.txt_ID = Entry(self.master)
         self.txt_ID.focus()
         self.txt_ID.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        if(match is not None):
-            self.txt_ID.insert(-1, match[0])
+        
+        if (match is not None):
+            self.txt_ID.insert(-1, match)
             self.txt_ID.config(state = 'disabled')
         else:
             self.txt_ID.grid(row = 1, column = 0, columnspan = 2, sticky = EW, padx = 0)
@@ -435,24 +448,15 @@ class addMatchGUI:
 
         self.txt_team1 = Entry(self.master)
         self.txt_team1.grid(row = 3, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        if(match is not None):
-            self.txt_team1.insert(-1, match[2])
 
         self.lbl_team2 = Label(self.master, text = '2nd Team')
         self.lbl_team2.grid(row = 4, column = 0, sticky = W)
 
         self.txt_team2 = Entry(self.master)
         self.txt_team2.grid(row = 5, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        if(match != None):
-            self.txt_team2.insert(-1, match[4])
 
         self.lbl_time = Label(self.master, text = 'Time')
         self.lbl_time.grid(row = 6, column = 0, sticky = W)
-
-        # self.txt_time = Entry(self.master)
-        # self.txt_time.grid(row = 7, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        # if(match != None):
-        #     self.txt_time.insert(-1, match[1])
 
         self.txt_date = DateEntry(self.master, width=12, background='darkblue', foreground='white', borderwidth=2)
         self.txt_date.grid(row = 7, column = 0)
@@ -468,14 +472,14 @@ class addMatchGUI:
         self.spinMin = ttk.Spinbox(self.master, from_=0, to=59, width = 5, textvariable=self.currMin, wrap=True)
         self.spinMin.grid(row = 7, column = 2, sticky = E)
 
-        if match  is not None:
+        if match is not None:
             self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
             self.btn_change.grid(row = 9, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
         else:
             self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
             self.btn_add.grid(row = 9, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
 
-        self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
+        self.btn_cancel = Button(self.master, text="Cancel", command = self.on_closing, width = 8)
         self.btn_cancel.grid(row = 9, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
 
         col_count, row_count = self.master.grid_size()
@@ -490,6 +494,7 @@ class addMatchGUI:
         self.master.destroy()
         self.parent.master.focus()
         self.parent.master.grab_set()
+
         windowsGlo.remove(self.master)
 
     def checker(self):
@@ -498,19 +503,33 @@ class addMatchGUI:
             self.txt_ID.delete(0, END)
         if self.isCheck.get() == 1:
             self.txt_ID.delete(0, END)
-            self.txt_ID.insert(-1, 'IDDDDDD')
+            self.txt_ID.insert(-1, uuid.uuid4().hex)
             self.txt_ID.config(state = 'readonly')
 
     def change(self):
         pass
 
     def add(self):
-        if not self.parent.command('addMatch', (self.txt_ID.get(), self.txt_team1.get(), self.txt_team2.get(), self.txt_time.get())):
+        id = self.txt_ID.get()
+        team1 = self.txt_team1.get()
+        team2 = self.txt_team2.get()
+        hour = self.spinHour.get()
+        min = self.spinMin.get()
+
+        if id == '' or team1 == '' or team2 == '':
+            showerror('Erorr', 'Invalid input')
+            return
+
+        time = str(self.txt_date.get_date()) + ' ' + hour + ':' + min
+        if not self.parent.command('addMatch', (id, team1, team2, time)):
             showerror('Error', 'Unable to create new match')
 
-    def cancel(self):
-        self.master.destroy()
-        windowsGlo.remove(self.master)
+        self.txt_ID.config(state = 'normal')
+        self.txt_ID.delete(0, END)
+        self.txt_ID.insert(-1, uuid.uuid4().hex)
+        self.txt_ID.config(state = 'readonly')
+
+
 
 class editAccountGUI:
     def __init__(self, master, parent, services):

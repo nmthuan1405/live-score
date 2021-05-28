@@ -60,7 +60,7 @@ class Client:
         return pickle.loads(obj)
 
     def recv_state(self):
-        return bool(self.recv_str())
+        return eval(self.recv_str())
 
     def send(self, data):
         return self.socket.send(data)
@@ -69,7 +69,7 @@ class Client:
         if delim == None:
             delim = self.delim
 
-        return self.send(string.encode() + delim)
+        return self.send(str(string).encode() + delim)
     
     def send_obj(self, object):
         obj = pickle.dumps(object)
@@ -114,4 +114,10 @@ class Client:
 
     def s_getMatch(self):
         self.send_str('getMatch')
+        return self.recv_obj()
+
+    def s_getMatchID(self, id):
+        self.send_str('getMatchID')
+        self.send_str(id)
+
         return self.recv_obj()
