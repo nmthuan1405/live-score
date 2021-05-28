@@ -237,11 +237,11 @@ class userGUI:
         style.configure("Treeview", font=(None, 12))
 
         #config column width
-        self.tree.column("#1", anchor = 'center', minwidth = 50, width = 50)
+        self.tree.column("#1", anchor = 'center', minwidth = 0, width = 0)
         self.tree.column("#2", anchor = 'center', minwidth = 50, width = 80)
-        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 200)
-        self.tree.column("#4", anchor = 'center', minwidth = 50, width = 80)
-        self.tree.column("#5", anchor = 'center', minwidth = 50, width = 200)
+        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 220)
+        self.tree.column("#4", anchor = 'center', minwidth = 50, width = 100)
+        self.tree.column("#5", anchor = 'center', minwidth = 50, width = 220)
 
         # define headings
         self.tree.heading('#1', text='ID')
@@ -356,11 +356,17 @@ class addMatchGUI:
 
         self.txt_ID = Entry(self.master)
         self.txt_ID.focus()
-        self.txt_ID.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        if(match != None):
+        if match is not None:
+            self.txt_ID.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
             self.txt_ID.insert(-1, match[0])
+            self.txt_ID.config(state = 'disabled')
+        else:
+            self.txt_ID.grid(row = 1, column = 0, columnspan = 2, sticky = EW, padx = 0)
+            self.isCheck = tk.IntVar()
+            self.isDefault = tk.Checkbutton(self.master, text = 'Default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+            self.isDefault.grid(row = 1, column = 2, sticky = E)
 
-        self.lbl_team1 = Label(self.master, text = 'Team 1')
+        self.lbl_team1 = Label(self.master, text = '1st Team')
         self.lbl_team1.grid(row = 2, column = 0, sticky = W)
 
         self.txt_team1 = Entry(self.master)
@@ -368,7 +374,7 @@ class addMatchGUI:
         if(match != None):
             self.txt_team1.insert(-1, match[2])
 
-        self.lbl_team2 = Label(self.master, text = 'Team 2')
+        self.lbl_team2 = Label(self.master, text = '2nd Team')
         self.lbl_team2.grid(row = 4, column = 0, sticky = W)
 
         self.txt_team2 = Entry(self.master)
@@ -379,12 +385,26 @@ class addMatchGUI:
         self.lbl_time = Label(self.master, text = 'Time')
         self.lbl_time.grid(row = 6, column = 0, sticky = W)
 
-        self.txt_time = Entry(self.master)
-        self.txt_time.grid(row = 7, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        if(match != None):
-            self.txt_time.insert(-1, match[1])
+        # self.txt_time = Entry(self.master)
+        # self.txt_time.grid(row = 7, column = 0, columnspan = 3, sticky = EW, padx = 0)
+        # if(match != None):
+        #     self.txt_time.insert(-1, match[1])
 
-        if match !=None:
+        self.txt_date = DateEntry(self.master, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.txt_date.grid(row = 7, column = 0)
+
+        self.currHour = tk.IntVar(value = 0)
+        self.spinHour = ttk.Spinbox(self.master, from_=0, to=23, width = 5, textvariable=self.currHour, wrap=True)
+        self.spinHour.grid(row = 7, column = 1, sticky = E)
+
+        self.lbl_seperator = Label(self.master, text = ':', font=(None, 12, BOLD))
+        self.lbl_seperator.grid(row = 7, column = 2, sticky = W, padx = 4)
+
+        self.currMin = tk.IntVar(value = 0)
+        self.spinMin = ttk.Spinbox(self.master, from_=0, to=59, width = 5, textvariable=self.currMin, wrap=True)
+        self.spinMin.grid(row = 7, column = 2, sticky = E)
+
+        if match  is not None:
             self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
             self.btn_change.grid(row = 9, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
         else:
@@ -407,6 +427,15 @@ class addMatchGUI:
         self.parent.focus()
         self.parent.grab_set()
         windowsGlo.remove(self.master)
+
+    def checker(self):
+        if self.isCheck.get() == 0:
+            self.txt_ID.config(state = 'normal')
+            self.txt_ID.delete(0, END)
+        if self.isCheck.get() == 1:
+            self.txt_ID.delete(0, END)
+            self.txt_ID.insert(-1, 'IDDDDDD')
+            self.txt_ID.config(state = 'readonly')
 
     def change(self):
         pass
@@ -611,6 +640,9 @@ class detailGUI:
             self.btn_addTag = Button(self.master, text = "Add tag", width = 10, height = 1, command = partial(self.addEvent, match, 1, self.master))
             self.btn_addTag.place(x = 100, y = 0)
 
+            self.btn_addOthers = Button(self.master, text = "Add others", width = 10, height = 1, command = partial(self.addOthers, match, self.master))
+            self.btn_addOthers.place(x = 190, y = 0)
+
             self.lbl_ID.place(x = 10, y = 30)
             self.lbl_time.place( x = 50, y = 30)
             self.master.update()
@@ -686,6 +718,12 @@ class detailGUI:
         addEventGUI(window_addEvent, type, parent, self.services, match)
         center(window_addEvent)
         window_addEvent.mainloop()
+
+    def addOthers(self, match, parent):
+        window_addOthers = Toplevel(self.master)
+        addOthersGUI(window_addOthers, parent, self.services, match)
+        center(window_addOthers)
+        window_addOthers.mainloop()
 
 class addEventGUI:
     def __init__(self, master, type, parent, services, match):
@@ -769,7 +807,84 @@ class addEventGUI:
         if self.isCheck.get() == 1:
             self.txt_time.delete(0, END)
             self.txt_time.insert(-1, 'now')
-            self.txt_time.config(state = 'disabled')
+            self.txt_time.config(state = 'readonly')
+
+    def add(self):
+        pass
+    def cancel(self):
+        self.master.destroy()
+        windowsGlo.remove(self.master)
+
+class addOthersGUI:
+    def __init__(self, master, parent, services, match):
+        windowsGlo.append(master)
+        self.services = services
+        self.master = master
+        self.master.title("Add event")
+        # self.master.resizable(0, 0)
+        self.master.focus()
+        self.master.grab_set()
+        self.master['padx'] = 10
+        self.master['pady'] = 10
+        self.parent = parent
+
+        self.master.columnconfigure(0, weight=1)
+        self.master.columnconfigure(1, weight=1)
+        self.master.columnconfigure(2, weight=1)
+
+        self.lbl_event = Label(self.master, text = 'Event')
+        self.lbl_event.grid(column = 0, row = 0, sticky = W)
+
+        self.events = ('Half-time break ', 'Stoppage time')
+        self.selected_event = tk.StringVar()
+        self.cbb_event = ttk.Combobox(self.master, textvariable = self.selected_event)
+        self.cbb_event['values'] = self.events
+        self.cbb_event.current(0)
+        self.cbb_event['state'] = 'readonly'  # normal
+        self.cbb_event.grid(column = 0, row = 1, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+        self.lbl_time = Label(self.master, text = 'Time')
+        self.lbl_time.grid(column = 0, row = 2, sticky = W)
+
+        self.isCheck = tk.IntVar()
+        self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+        self.checkbox.select()
+        self.checkbox.place( x = 35, y = 42)
+
+        self.txt_time = Entry(self.master)
+        self.txt_time.insert(-1, 'now')
+        self.txt_time.config(state = 'readonly')
+        self.txt_time.grid(column = 0, row = 3, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+        self.lbl_duration = Label(self.master, text = 'Duration')
+        self.lbl_duration.grid(column = 0, row = 4, sticky = W)
+
+        self.currDur = tk.IntVar(value = 15)
+        self.spinDur = ttk.Spinbox(self.master, width = 8, from_=0, to=30, textvariable=self.currDur, wrap=True)
+        self.spinDur.grid(row = 5, column = 0, columnspan = 1, sticky = W)
+
+        self.lbl_min = Label(self.master, text = 'minutes')
+        self.lbl_min.grid(row = 5, column = 1, sticky = W)
+        
+        self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
+        self.btn_add.grid(row = 7, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+
+        self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
+        self.btn_cancel.grid(row = 7, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
+
+        col_count, row_count = self.master.grid_size()
+        for col in range(col_count):
+            self.master.grid_columnconfigure(col, minsize = 70)
+        for row in range(row_count):
+            self.master.grid_rowconfigure(row, minsize = 20)
+    
+    def checker(self):
+        if self.isCheck.get() == 0:
+            self.txt_time.config(state = 'normal')
+            self.txt_time.delete(0, END)
+        if self.isCheck.get() == 1:
+            self.txt_time.delete(0, END)
+            self.txt_time.insert(-1, 'now')
             self.txt_time.config(state = 'readonly')
 
     def add(self):
