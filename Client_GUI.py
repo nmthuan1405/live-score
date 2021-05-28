@@ -1,13 +1,17 @@
 from doctest import master
+from time import time
 import tkinter as tk
 from tkinter import ttk
 from tkinter import *
 from tkinter.font import BOLD
-from tkinter.messagebox import showerror, showinfo, askokcancel
+from tkinter.messagebox import showerror, showinfo, askokcancel, showwarning
 from tkinter import scrolledtext
 from functools import partial
 from tkcalendar import Calendar, DateEntry
 import client
+import queue
+import uuid
+import threading
 
 windowsGlo = list()
 
@@ -186,9 +190,14 @@ class userGUI:
         self.parent = parent
         self.services = services
 
+        self.detailWindows = ()
+        self.request = queue.Queue()
+        self.client_thread = None
+        self.result = {}
+
         self.parent.withdraw()
 
-        if self.services.isAdmin:\
+        if self.services.isAdmin:
             self.master.title("Administrator")
         else:
             self.master.title("User")
@@ -256,13 +265,6 @@ class userGUI:
         self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
         self.tree.configure(yscroll = self.scrollbar.set)
         self.scrollbar.grid(row = 2, column = 7, padx = 0, pady = 5, sticky = 'ns')
-
-        # add data
-        contacts = []
-        contacts.append(('1', '22:10', 'Verona', '1 - 1', 'Bologna'))
-        contacts.append(('2', '17:00', 'Campbelltown City', '2 - 1', 'North Eastern Metro Stars'))
-        for contact in contacts:
-            self.tree.insert('', tk.END, values=contact)
         
         col_count, row_count = self.master.grid_size()
         for col in range(col_count):
@@ -272,10 +274,15 @@ class userGUI:
 
         self.master.protocol("WM_DELETE_WINDOW", self.signOut)
 
+        self.start()
+        self.updateMatch()
+
         def dateChanged(event):
             selectedDate = self.txt_date.get_date()
             self.allDate.deselect()
         self.txt_date.bind('<<DateEntrySelected>>', dateChanged)
+
+
 
     def checker(self):
         if self.isCheck.get() == 0:
@@ -284,18 +291,69 @@ class userGUI:
         if self.isCheck.get() == 1:
             self.txt_date.config(state = 'disabled')
 
+    def run(self):
+        while True:
+            id, cmd, arg = self.request.get()
+
+            if cmd == 'listAll':
+                res = self.services.s_getMatch()
+            elif cmd == 'addMatch':
+                res = self.services.s_addMatch(arg[0], arg[1], arg[2], arg[3])
+            elif cmd == 'editMatch':
+                res = self.services.s_editMatch(arg[0], arg[1], arg[2], arg[3])
+            elif cmd == 'delMatch':
+                res = self.services.s_delMatch(arg)
+            if cmd == 'exit':
+                break
+
+            self.result[id] = res
+
+    def start(self):
+        if self.client_thread is None:
+            self.client_thread = threading.Thread(target = self.run)
+            self.client_thread.start()
+
+    def stop(self):
+        if self.client_thread is not None:
+            self.command('exit', '')
+            self.client_thread.join()
+            self.client_thread = None
+
+    def command(self, cmd, arg = ()):
+        id = uuid.uuid4().hex
+        self.request.put((id, cmd, arg))
+
+        if cmd != 'exit':
+            while True:
+                if id in self.result:
+                    res = self.result[id]
+                    self.result.pop(id)
+                    return res
+
+
+    def updateMatch(self):
+        matches_tuple = self.command('listAll')
+        matches = [list(ele) for ele in matches_tuple]
+
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+            
+        for match in matches:
+            self.tree.insert('', tk.END, values = match[:-1])
+
+        self.master.after(5000, self.updateMatch)
+
     def detail(self, parent):
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
+            showwarning("Warning", "Choose a match to see detail")
             return
 
         window_detail = Toplevel(self.master)
-        if self.services.isAdmin:
-            detailGUI(window_detail, 1, parent, self.services, match)
-        else:
-            detailGUI(window_detail, 0, parent, self.services, match)
+        self.detailWindows.append(detailGUI(window_detail, parent, self.services, match))
         center(window_detail)
         window_detail.mainloop()
+
 
     def edit(self, parent):
         match = self.tree.item(self.tree.focus())['values']
@@ -309,12 +367,17 @@ class userGUI:
 
     def addMatch(self, parent):
         window_addMatch = Toplevel(self.master)
-        addMatchGUI(window_addMatch, parent, self.services, None)
+        addMatchGUI(window_addMatch, self, self.services, None)
         center(window_addMatch)
         window_addMatch.mainloop()
 
     def delete(self):
-        pass
+        match = self.tree.item(self.tree.focus())['values']
+        if match == '':
+            return
+
+        if not self.command('delMatch', str(match[0])):
+            showerror('Error', 'Unable to delete match')        
 
     def editAccount(self, parent):
         window_editAccount = Toplevel(self.master)
@@ -324,6 +387,7 @@ class userGUI:
 
     def signOut(self):
         self.services.s_signOut()
+        self.stop()
 
         self.master.destroy()
         windowsGlo.remove(self.master)
@@ -335,7 +399,7 @@ class addMatchGUI:
         windowsGlo.append(master)
         self.services = services
         self.master = master
-        if match == None:
+        if match is None:
             self.master.title("Add match")
         else:
             self.master.title("Edit match")
@@ -356,8 +420,8 @@ class addMatchGUI:
 
         self.txt_ID = Entry(self.master)
         self.txt_ID.focus()
-        if match is not None:
-            self.txt_ID.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
+        self.txt_ID.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
+        if(match is not None):
             self.txt_ID.insert(-1, match[0])
             self.txt_ID.config(state = 'disabled')
         else:
@@ -371,7 +435,7 @@ class addMatchGUI:
 
         self.txt_team1 = Entry(self.master)
         self.txt_team1.grid(row = 3, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        if(match != None):
+        if(match is not None):
             self.txt_team1.insert(-1, match[2])
 
         self.lbl_team2 = Label(self.master, text = '2nd Team')
@@ -424,8 +488,8 @@ class addMatchGUI:
 
     def on_closing(self):
         self.master.destroy()
-        self.parent.focus()
-        self.parent.grab_set()
+        self.parent.master.focus()
+        self.parent.master.grab_set()
         windowsGlo.remove(self.master)
 
     def checker(self):
@@ -439,8 +503,11 @@ class addMatchGUI:
 
     def change(self):
         pass
+
     def add(self):
-        pass
+        if not self.parent.command('addMatch', (self.txt_ID.get(), self.txt_team1.get(), self.txt_team2.get(), self.txt_time.get())):
+            showerror('Error', 'Unable to create new match')
+
     def cancel(self):
         self.master.destroy()
         windowsGlo.remove(self.master)
@@ -607,11 +674,11 @@ class editGUI:
 
 
 class detailGUI:
-    def __init__(self, master, type, parent, services, match):
+    def __init__(self, master, parent, services, match):
         windowsGlo.append(master)
         self.services = services
         self.master = master
-        if type == 0:
+        if self.services.isAdmin:
             self.master.title("Match details")
         else:
             self.master.title("Edit match")
@@ -633,7 +700,7 @@ class detailGUI:
 
         self.lbl_team2 = Label(self.master, text = match[4], font=(None, 14))
 
-        if type == 1:
+        if self.services.isAdmin:
             self.btn_addGoal = Button(self.master, text = "Add goal", width = 10, height = 1, command = partial(self.addEvent, match, 0, self.master))
             self.btn_addGoal.place(x = 10, y = 0)
 
@@ -889,6 +956,7 @@ class addOthersGUI:
 
     def add(self):
         pass
+
     def cancel(self):
         self.master.destroy()
         windowsGlo.remove(self.master)

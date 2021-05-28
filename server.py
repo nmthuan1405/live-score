@@ -4,8 +4,6 @@ import threading
 from tkinter import INSERT
 import database
 
-db = database.Database()
-
 class Server:
     def __init__(self, log, port = 1234):
         self.port = port
@@ -14,6 +12,7 @@ class Server:
 
         self.socket = None
         self.server_thread = None
+        self.db = None
 
     def start(self):
         self.writeLog('START SERVER')
@@ -25,7 +24,9 @@ class Server:
         self.server_thread = threading.Thread(target = self.addClient)
         self.server_thread.start()
         self.writeLog('Start add client thread')
-        db.start()
+        
+        self.db = database.Database()
+        self.db.start()
         self.writeLog('Start database thread')
 
     def stop(self):
@@ -46,7 +47,7 @@ class Server:
             server.close()
         finally:
             self.server_thread.join()
-            db.stop()
+            self.db.stop()
             self.writeLog('Exit database thread')
 
     def clientCount(self):
@@ -61,7 +62,7 @@ class Server:
             try:
                 conn, addr = self.socket.accept()
 
-                client = Client(conn, addr, self.log)
+                client = Client(conn, addr, self.db, self.log)
                 self.clients.append(client)
                 client.start()
                 
@@ -79,7 +80,7 @@ class Server:
 
 
 class Client:
-    def __init__(self, socket, addr, log, delim = b'\x00'):
+    def __init__(self, socket, addr, db, log, delim = b'\x00'):
         self.addr = addr
         self.log = log
         self.delim = delim
@@ -88,6 +89,7 @@ class Client:
         self.socket = socket
         self.buff = b''
         self.client_thread = None
+        self.db = db
 
     def start(self):
         self.writeLog('START CLIENT')
@@ -103,12 +105,15 @@ class Client:
             client.shutdown(socket.SHUT_RDWR)
             client.close()
         finally:
-            self.client_thread.join()
+            try:
+                self.client_thread.join()
+            except:
+                pass
 
     def services(self):
         while True:
 
-            try:
+            # try:
                 flag = self.recv_str()
                 self.writeLog(f'Received: {flag}')
 
@@ -125,14 +130,24 @@ class Client:
                     else:
                         if flag == 'signOut':
                             self.c_signOut()
+                        elif flag == 'getMatch':
+                            self.c_getMatch()
 
-            except:
-                if self.isClosed():
-                    self.writeLog('Client closed. Exit thread')
-                else:
-                    self.conn = None
-                    self.writeLog('Client have unexpected error. Exit thread')
-                break
+                        if self.isAdmin:
+                            if flag == 'addMatch':
+                                self.c_addMatch()
+                            elif flag == 'editMatch':
+                                self.c_editMatch()
+                            elif flag == 'delMatch':
+                                self.c_delMatch()
+
+            # except:
+            #     if self.isClosed():
+            #         self.writeLog('Client closed. Exit thread')
+            #     else:
+            #         self.conn = None
+            #         self.writeLog('Client have unexpected error. Exit thread')
+            #     break
             
 
     def isClosed(self):
@@ -175,6 +190,9 @@ class Client:
 
         return pickle.loads(obj)
 
+    def recv_state(self):
+        return bool(self.recv_str())
+
     def send(self, data):
         return self.socket.send(data)
 
@@ -190,6 +208,9 @@ class Client:
 
         self.send_str(str(obj_size))
         return self.send(obj)
+    
+    def send_state(self, state):
+        self.send_str(str(state))
 
     def writeLog(self, data):
         self.log.put(f'({self.addr[0]}, {self.addr[1]}): ' +  data)
@@ -198,7 +219,7 @@ class Client:
         User = self.recv_str()
         Pass = self.recv_str()
 
-        self.isAdmin = db.checkAccount(User, Pass)
+        self.isAdmin = self.db.checkAccount(User, Pass)
         self.send_obj(self.isAdmin)
 
         self.writeLog(f'SIGN IN. Admin: {self.isAdmin}')
@@ -207,7 +228,7 @@ class Client:
         User = self.recv_str()
         Pass = self.recv_str()
 
-        state = db.insertAccount(User, Pass)
+        state = self.db.insertAccount(User, Pass)
         self.send_obj(state)
 
         self.writeLog(f'SIGN UP. Sucess: {state}')
@@ -215,3 +236,24 @@ class Client:
     def c_signOut(self):
         self.isAdmin = None
         self.writeLog('SIGN OUT')
+
+    def c_addMatch(self):
+        id, team1Name, team2Name, time = self.recv_obj()
+        self.send_state(self.db.insertMatch(id, team1Name, team2Name, time))
+
+        self.writeLog(f'Add match. ID: {id}')
+
+    def c_editMatch(self):
+        id, team1Name, team2Name, time = self.recv_obj()
+        self.send_state(self.db.editMatch(id, team1Name, team2Name, time))
+
+        self.writeLog(f'Edit match. ID: {id}')
+
+    def c_delMatch(self):
+        id = self.recv_str()
+        self.send_state(self.db.deleteMatch(id))
+
+        self.writeLog(f'Delete match. ID: {id}')
+
+    def c_getMatch(self):
+        self.send_obj(self.db.getMatch())

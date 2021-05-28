@@ -59,6 +59,9 @@ class Client:
 
         return pickle.loads(obj)
 
+    def recv_state(self):
+        return bool(self.recv_str())
+
     def send(self, data):
         return self.socket.send(data)
 
@@ -75,6 +78,9 @@ class Client:
         self.send_str(str(obj_size))
         return self.send(obj)
 
+    def send_state(self, state):
+        self.send_str(str(state))
+
     def s_auth(self, User, Pass, type):
         self.send_str(type)
         
@@ -88,3 +94,24 @@ class Client:
 
     def s_signOut(self):
         self.send_str('signOut')
+
+    def s_addMatch(self, id, team1Name, team2Name, time):
+        self.send_str('addMatch')
+
+        self.send_obj((id, team1Name, team2Name, time))
+        return self.recv_state()
+
+    def s_editMatch(self, id, team1Name, team2Name, time):
+        self.send_str('editMatch')
+
+        self.send_obj((id, team1Name, team2Name, time))
+        return self.recv_state()
+
+    def s_delMatch(self, id):
+        self.send_str('delMatch')
+        self.send_str(id)
+        return self.recv_state()
+
+    def s_getMatch(self):
+        self.send_str('getMatch')
+        return self.recv_obj()

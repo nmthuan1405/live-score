@@ -25,19 +25,19 @@ class Database:
         self.execute(cmd, val)
         return self.cur.fetchall()
 
-    def insert(self, cmd, val = ()):
+    def update(self, cmd, val = ()):
         self.execute(cmd, val)
         self.con.commit()
 
     def createTable(self):
         self.execute("CREATE TABLE IF NOT EXISTS auth(user text, pass text, isAdmin int, PRIMARY KEY (user))")
-        self.execute("CREATE TABLE IF NOT EXISTS match(id text, team1 text, team2 text, score1 int, score2 int, time text, isDone int, PRIMARY KEY (id))")
-        self.execute("CREATE TABLE IF NOT EXISTS detail(id text, time int, type int, team int, player text, FOREIGN KEY (id) REFERENCES match(id))")
+        self.execute("CREATE TABLE IF NOT EXISTS match(id text, time text, team1 text, team2 text, score text, isDone int, PRIMARY KEY (id))")
+        self.execute("CREATE TABLE IF NOT EXISTS detail(match text, id text, time int, type int, team int, player text, PRIMARY KEY (id), FOREIGN KEY (match) REFERENCES match(id))")
 
-        self.insertAccount('admin', 'admin', True)
+        self.update("INSERT INTO auth VALUES ('admin', 'admin', 1)")
 
     def insertAccount(self, User, Pass, isAdmin = False):
-        return self.command('insert', "INSERT INTO auth VALUES (?, ?, ?)", (User, Pass, int(isAdmin)))
+        return self.command('update', "INSERT INTO auth VALUES (?, ?, ?)", (User, Pass, int(isAdmin)))
 
     def checkAccount(self, User, Pass):
         data = self.command('query', "SELECT * FROM auth WHERE user = ? AND pass = ?", (User, Pass))
@@ -47,36 +47,45 @@ class Database:
         return None
 
     def insertMatch(self, id, team1Name, team2Name, time):
-        return self.command('insert', "INSERT INTO match VALUES (?, ?, ?, 0, 0, ?)", (id, team1Name, team2Name, time))
+        return self.command('update', "INSERT INTO match VALUES (?, ?, ?, ?, '', 0)", (id, time, team1Name, team2Name))
+
+    def getMatch(self):
+        return self.command('query', 'SELECT * FROM match ORDER BY datetime(time)')
+
+    def editMatch(self, id, team1Name, team2Name, time):
+        return self.command('update', "UPDATE match SET team1 = ?, team2 = ?, time = ?, isDone = 0 WHERE id = ?", (team1Name, team2Name, time, id))
+
+    def deleteMatch(self, id):
+        return self.command('update', "DELETE FROM match WHERE id = ?", (id,))
 
     def run(self):
         while True:
-            if not self.request.empty():
-                id, req, cmd, val = self.request.get()
-                res = True
-                print(id, req)
-                try:
-                    if req == 'query':
-                        res = self.query(cmd, val)
-                    elif req == 'insert':
-                        self.insert(cmd, val)
-                    elif req == 'exit':
-                        break
-                except:
-                    res = False
-                finally:
-                    self.result[id] = res
+            id, req, cmd, val = self.request.get()
+            res = True
+            try:
+                if req == 'query':
+                    res = self.query(cmd, val)
+                elif req == 'update':
+                    self.update(cmd, val)
+                elif req == 'exit':
+                    break
+            except sqlite3.IntegrityError:
+                res = False
+            except:
+                res = None
+            finally:
+                self.result[id] = res
 
     def command(self, req, cmd, val = ()):
         id = uuid.uuid4().hex
         self.request.put((id, req, cmd, val))
 
-        while True:
-            if id in self.result:
-                res = self.result[id]
-                self.result.pop(id)
-                print(res)
-                return res
+        if cmd != 'exit':
+            while True:
+                if id in self.result:
+                    res = self.result[id]
+                    self.result.pop(id)
+                    return res
 
     def start(self):
         if self.db_thread is None:
@@ -88,3 +97,5 @@ class Database:
             self.command('exit', '')
             self.db_thread.join()
             self.db_thread = None
+
+        self.con.close()
