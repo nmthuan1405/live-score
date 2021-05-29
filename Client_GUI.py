@@ -915,9 +915,9 @@ class addEventGUI:
                 self.lbl_player.grid_remove()
                 self.txt_player.grid_remove()
 
-                self.lbl_duration.grid(column = 0, row = 4, sticky = W)
-                self.spinDur.grid(row = 5, column = 0, columnspan = 1, sticky = W)
-                self.lbl_min.grid(row = 5, column = 1, sticky = W)
+                self.lbl_duration.grid(column = 0, row = 6, sticky = W)
+                self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
+                self.lbl_min.grid(row = 7, column = 1, sticky = W)
                 
                 self.lbl_time.grid()
                 self.txt_time.grid()
@@ -929,17 +929,24 @@ class addEventGUI:
                 self.lbl_player.grid_remove()
                 self.txt_player.grid_remove()
 
-                self.lbl_duration.grid(column = 0, row = 4, sticky = W)
-                self.spinDur.grid(row = 5, column = 0, columnspan = 1, sticky = W)
-                self.lbl_min.grid(row = 5, column = 1, sticky = W)
+                self.lbl_duration.grid(column = 0, row = 6, sticky = W)
+                self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
+                self.lbl_min.grid(row = 7, column = 1, sticky = W)
                 
                 self.lbl_time.grid()
                 self.txt_time.grid()
         
         self.cbb_eventType.bind('<<ComboboxSelected>>', eventTypeChanged)
 
+        self.lbl_ID = Label(self.master, text = 'Event ID')
+        self.lbl_ID.grid(column = 0, row = 3, sticky = W)
+
+        self.txt_ID = Entry(self.master)
+        self.txt_ID.config(state = 'readonly')
+        self.txt_ID.grid(column = 0, row = 4, columnspan = 3, sticky = EW, padx = 0)
+
         self.lbl_team = Label(self.master, text = 'Team')
-        self.lbl_team.grid(column = 0, row = 3, sticky = W)
+        self.lbl_team.grid(column = 0, row = 5, sticky = W)
 
         self.teams = (match[2], match[4])
         self.selected_team = tk.StringVar()
@@ -947,27 +954,27 @@ class addEventGUI:
         self.cbb_team['values'] = self.teams
         self.cbb_team.current(0)
         self.cbb_team['state'] = 'readonly'  # normal
-        self.cbb_team.grid(column = 0, row = 4, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+        self.cbb_team.grid(column = 0, row = 6, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
         self.lbl_player = Label(self.master, text = 'Player')
-        self.lbl_player.grid(column = 0, row = 5, sticky = W)
+        self.lbl_player.grid(column = 0, row = 7, sticky = W)
 
         self.txt_player = Entry(self.master)
-        self.txt_player.grid(column = 0, row = 6, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+        self.txt_player.grid(column = 0, row = 8, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
         self.lbl_time = Label(self.master, text = 'Time')
-        self.lbl_time.grid(column = 0, row = 7, sticky = W)
+        self.lbl_time.grid(column = 0, row = 9, sticky = W)
 
         self.isCheck = tk.IntVar()
         self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
         self.checkbox.select()
-        self.checkbox.place(x = 35, y = 146)
+        self.checkbox.place(x = 35, y = 188)
 
         self.txt_time = Entry(self.master)
         self.txt_time.insert(-1, 'now')
         self.txt_time.config(state = 'disabled')
         self.txt_time.config(state = 'readonly')
-        self.txt_time.grid(column = 0, row = 8, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+        self.txt_time.grid(column = 0, row = 10, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
         self.lbl_duration = Label(self.master, text = 'Duration')
 
@@ -977,10 +984,10 @@ class addEventGUI:
         self.lbl_min = Label(self.master, text = 'minutes')
 
         self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
-        self.btn_add.grid(row = 10, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+        self.btn_add.grid(row = 13, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
 
         self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
-        self.btn_cancel.grid(row = 10, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
+        self.btn_cancel.grid(row = 13, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
 
         col_count, row_count = self.master.grid_size()
         for col in range(col_count):
