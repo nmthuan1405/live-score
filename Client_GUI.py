@@ -15,6 +15,7 @@ import threading
 from datetime import datetime
 
 windowsGlo = list()
+timeout = 5000
 
 def center(toplevel):
     toplevel.update_idletasks()
@@ -191,10 +192,7 @@ class userGUI:
         self.parent = parent
         self.services = services
 
-        self.detailWindows = []
-        self.request = queue.Queue()
-        self.client_thread = None
-        self.result = {}
+        self.req = client.QueueServer(self.services)
 
         self.parent.withdraw()
 
@@ -231,10 +229,10 @@ class userGUI:
             self.btn_delete = Button(self.master, text = "Delete match", width = 12, height = 1, command = self.delete)
             self.btn_delete.grid(column = 3, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
 
-            self.btn_editAccount = Button(self.master, text = "Edit account", width = 12, height = 1, command = partial(self.editAccount, self.master))
+            self.btn_editAccount = Button(self.master, text = "Edit account", width = 12, height = 1, command = self.editAccount)
             self.btn_editAccount.grid(column = 5, row = 1, sticky = tk.E, padx = 0, pady = 0, ipady = 0)
 
-        self.btn_detail = Button(self.master, text = "Match detail", width = 12, height = 1, command = partial(self.detail, self.master))
+        self.btn_detail = Button(self.master, text = "Match detail", width = 12, height = 1, command = self.detail)
         self.btn_detail.grid(column = 0, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
 
         self.btn_signOut = Button(self.master, text = "Sign out", width = 12, height = 1, command = self.signOut)
@@ -277,15 +275,14 @@ class userGUI:
 
         self.master.protocol("WM_DELETE_WINDOW", self.signOut)
 
-        self.start()
-        self.updateMatch()
-
         def dateChanged(event):
             selectedDate = self.txt_date.get_date()
             self.allDate.deselect()
         self.txt_date.bind('<<DateEntrySelected>>', dateChanged)
 
-
+        # start init
+        self.req.start()
+        self.schedule()
 
     def checker(self):
         if self.isCheck.get() == 0:
@@ -294,59 +291,34 @@ class userGUI:
         if self.isCheck.get() == 1:
             self.txt_date.config(state = 'disabled')
 
-    def run(self):
-        while True:
-            id, cmd, arg = self.request.get()
+    def schedule(self):
+        matches_tuple = self.req.command('listAll')
+        
+        matches = []
+        for element in matches_tuple:
+            if element[5] == 1: 
+                time = 'FT'
+                score = element[4]
+            else:
+                ht = self.req.command('getHT', element[0])
+                if not ht:
+                    ht_start, ht_len = 45, 0
+                else:
+                    ht_start, ht_len = ht[0]
 
-            if cmd == 'listAll':
-                res = self.services.s_getMatch()
-            elif cmd == 'addMatch':
-                res = self.services.s_addMatch(arg[0], arg[1], arg[2], arg[3])
-            elif cmd == 'editMatch':
-                res = self.services.s_editMatch(arg[0], arg[1], arg[2], arg[3])
-            elif cmd == 'delMatch':
-                res = self.services.s_delMatch(arg)
-            elif cmd == 'getMatch':
-                res = self.services.s_getMatchID(arg)
-            if cmd == 'exit':
-                break
+                time = client.calcTime(element[1], int(ht_start), int(ht_len), 0)
+                score = element[4]
 
-            self.result[id] = res
+            matches.append([element[0], time, element[2], score, element[3]])
 
-    def start(self):
-        if self.client_thread is None:
-            self.client_thread = threading.Thread(target = self.run)
-            self.client_thread.start()
-
-    def stop(self):
-        if self.client_thread is not None:
-            self.command('exit', '')
-            self.client_thread.join()
-            self.client_thread = None
-
-    def command(self, cmd, arg = ()):
-        id = uuid.uuid4().hex
-        self.request.put((id, cmd, arg))
-
-        if cmd != 'exit':
-            while True:
-                if id in self.result:
-                    res = self.result[id]
-                    self.result.pop(id)
-                    return res
-
-
-    def updateMatch(self):
-        matches_tuple = self.command('listAll')
-        matches = [list(ele) for ele in matches_tuple]
 
         choosen = self.tree.item(self.tree.focus())['values']
         for row in self.tree.get_children():
             self.tree.delete(row)
             
         for match in matches:
-            self.tree.insert('', tk.END, values = match[:-1])
-        
+            self.tree.insert('', tk.END, values = match)
+
         if choosen != '':
             id = None
             for row in self.tree.get_children():
@@ -358,16 +330,16 @@ class userGUI:
                 self.tree.selection_set(id)   
                 self.tree.focus(id)
 
-        self.master.after(1000, self.updateMatch)
+        self.master.after(timeout, self.schedule)
 
-    def detail(self, parent):
+    def detail(self):
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
             showwarning("Warning", "Choose a match to see detail")
             return
 
         window_detail = Toplevel(self.master)
-        self.detailWindows.append(detailGUI(window_detail, self, self.services, match))
+        detailGUI(window_detail, self.master, self.services, self.req, match[0])
         center(window_detail)
         window_detail.mainloop()
 
@@ -375,16 +347,17 @@ class userGUI:
     def edit(self):
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
+            showwarning("Warning", "Choose a match to edit")
             return
 
         window_edit = Toplevel(self.master)
-        addMatchGUI(window_edit, self, self.services, match[0])
+        addMatchGUI(window_edit, self.master, self.services, self.req, match[0])
         center(window_edit)
         window_edit.mainloop()
 
     def addMatch(self):
         window_addMatch = Toplevel(self.master)
-        addMatchGUI(window_addMatch, self, self.services)
+        addMatchGUI(window_addMatch, self.master, self.services, self.req)
         center(window_addMatch)
         window_addMatch.mainloop()
 
@@ -393,7 +366,7 @@ class userGUI:
         if match == '':
             return
 
-        if not self.command('delMatch', match[0]):
+        if not self.req.command('delMatch', match[0]):
             showerror('Error', 'Unable to delete match')        
 
     def editAccount(self, parent):
@@ -404,7 +377,7 @@ class userGUI:
 
     def signOut(self):
         self.services.s_signOut()
-        self.stop()
+        self.req.stop()
 
         self.master.destroy()
         windowsGlo.remove(self.master)
@@ -412,7 +385,7 @@ class userGUI:
         self.parent.deiconify()
 
 class addMatchGUI:
-    def __init__(self, master, parent, services, match = None):
+    def __init__(self, master, parent, services, req, match = None):
         windowsGlo.append(master)
         self.services = services
         self.master = master
@@ -427,6 +400,7 @@ class addMatchGUI:
         self.master['pady'] = 10
 
         self.parent = parent
+        self.req = req
 
         self.master.columnconfigure(0, weight=1)
         self.master.columnconfigure(1, weight=1)
@@ -501,7 +475,7 @@ class addMatchGUI:
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         if match is not None:
-            data = self.parent.command('getMatch', match)
+            data = self.req.command('getMatch', match)
             if data and len(data) == 1:
                 data = data[0]
 
@@ -517,8 +491,8 @@ class addMatchGUI:
 
     def on_closing(self):
         self.master.destroy()
-        self.parent.master.focus()
-        self.parent.master.grab_set()
+        self.parent.focus()
+        self.parent.grab_set()
 
         windowsGlo.remove(self.master)
 
@@ -543,7 +517,7 @@ class addMatchGUI:
             return
 
         time = str(self.txt_date.get_date()) + ' ' + hour + ':' + min
-        if not self.parent.command('editMatch', (id, team1, team2, time)):
+        if not self.req.command('editMatch', (id, team1, team2, time)):
             showerror('Error', 'Unable to create new match')
 
     def add(self):
@@ -559,7 +533,7 @@ class addMatchGUI:
             return
 
         time = str(self.txt_date.get_date()) + ' ' + hour + ':' + min
-        if not self.parent.command('addMatch', (id, team1, team2, time)):
+        if not self.req.command('addMatch', (id, team1, team2, time)):
             showerror('Error', 'Unable to create new match')
 
         self.txt_ID.config(state = 'normal')
@@ -731,7 +705,7 @@ class editGUI:
 
 
 class detailGUI:
-    def __init__(self, master, parent, services, match):
+    def __init__(self, master, parent, services, req, match):
         windowsGlo.append(master)
         self.services = services
         self.master = master
@@ -746,16 +720,20 @@ class detailGUI:
         self.master['pady'] = 10
 
         self.parent = parent
+        self.req = req
+        self.match = match
+        self.score = (0, 0)
 
-        self.lbl_ID = Label(self.master, text = match[0], font=(None, 12))
+        self.lbl_ID = Label(self.master, font=(None, 12))
+        self.lbl_ID.config(text = match)
 
-        self.lbl_time = Label(self.master, text = match[1], font=(None, 12))
+        self.lbl_time = Label(self.master, font=(None, 12))
 
-        self.lbl_team1 = Label(self.master, text = match[2], font=(None, 14))
+        self.lbl_team1 = Label(self.master, font=(None, 14))
 
-        self.lbl_score = Label(self.master, text = match[3], font=(None, 14))
+        self.lbl_score = Label(self.master, font=(None, 14))
 
-        self.lbl_team2 = Label(self.master, text = match[4], font=(None, 14))
+        self.lbl_team2 = Label(self.master, font=(None, 14))
 
         if self.services.isAdmin:
             self.btn_addEvent = Button(self.master, text = "Add event", width = 10, height = 1, command = partial(self.addEvent, match, self.master))
@@ -808,14 +786,6 @@ class detailGUI:
         else:
             self.scrollbar.grid(row = 2, column = 5, padx = 0, pady = 5, sticky = 'ns')
 
-        # add data
-        contacts = []
-        contacts.append(("10'", 'A', 'Score', '1 - 0', '', ''))
-        contacts.append(("20'", '', '', '1 - 1', 'Score', 'B'))
-
-        for contact in contacts:
-            self.tree.insert('', tk.END, values=contact)
-
         col_count, row_count = self.master.grid_size()
         for col in range(col_count):
             self.master.grid_columnconfigure(col, minsize = 0)
@@ -824,6 +794,42 @@ class detailGUI:
             self.master.grid_rowconfigure(row, minsize = 30)
 
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.schedule()
+
+    def schedule(self):
+        match = self.req.command('getMatch', self.match)
+        if match:
+            match = match[0]
+        else:
+            return
+            
+        self.lbl_team1.config(text = match[2])
+        self.lbl_team2.config(text = match[3])
+
+        choosen = self.tree.item(self.tree.focus())['values']
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+
+        details = self.req.command('getDls', self.match)
+        for detail in details:
+            self.tree.insert('', tk.END, values = detail[2:5])
+
+        if choosen != '':
+            id = None
+            for row in self.tree.get_children():
+                if self.tree.item(row)['values'][0] == choosen[0]:
+                    id = row
+                    break
+
+            if id is not None: 
+                self.tree.selection_set(id)   
+                self.tree.focus(id)
+
+        score = str(self.score[0]) + ' - ' + str(self.score[1])
+        self.lbl_score.config(text = score)
+        
+        self.master.after(timeout, self.schedule)
 
     def on_closing(self):
         self.master.destroy()
