@@ -899,7 +899,7 @@ class detailGUI:
 
     def addEvent(self, match, parent):
         window_addEvent = Toplevel(self.master)
-        addEventGUI(window_addEvent, parent, self.services, match, None)
+        addEventGUI(window_addEvent, parent, self.services, self.req, self.details, None)
         center(window_addEvent)
         window_addEvent.mainloop()
 
@@ -925,10 +925,13 @@ class detailGUI:
 
 
 class addEventGUI:
-    def __init__(self, master, parent, services, match, event):
+    def __init__(self, master, parent, services, req, details, event):
         windowsGlo.append(master)
         self.services = services
+        self.req = req
         self.master = master
+        self.details = details
+
         if event is None:
             self.master.title("Add event")
         else:
@@ -947,7 +950,7 @@ class addEventGUI:
         self.lbl_event = Label(self.master, text = 'Choose event')
         self.lbl_event.grid(column = 0, row = 3, sticky = W)
 
-        self.eventTypes = ('Goal', 'Yellow card', 'Red card', 'Half-time break ', 'Stoppage time')
+        self.eventTypes = ('Goal', 'Yellow card', 'Red card', 'Half-time break', 'Stoppage time')
         self.selected_eventType = tk.StringVar()
         self.cbb_eventType = ttk.Combobox(self.master, textvariable = self.selected_eventType)
         self.cbb_eventType['values'] = self.eventTypes
@@ -987,12 +990,13 @@ class addEventGUI:
         self.lbl_ID.grid(column = 0, row = 0, sticky = W)
 
         self.txt_ID = Entry(self.master)
+        self.txt_ID.insert(-1, uuid.uuid4().hex)
         self.txt_ID.config(state = 'readonly')
         self.txt_ID.grid(column = 0, row = 1, columnspan = 3, sticky = EW, padx = 0)
 
         self.lbl_team = Label(self.master, text = 'Team')
 
-        self.teams = (match[2], match[4])
+        self.teams = (details[0][2], details[0][3])
         self.selected_team = tk.StringVar()
         self.cbb_team = ttk.Combobox(self.master, textvariable = self.selected_team)
         self.cbb_team['values'] = self.teams
@@ -1062,7 +1066,22 @@ class addEventGUI:
             self.txt_time.config(state = 'readonly')
 
     def add(self):
-        pass
+        id = self.txt_ID.get()
+        time = self.txt_time.get()
+        if time == 'now':
+            time = self.details[0][1]
+            
+        code = client.eventNameToCode(self.cbb_eventType.get())
+
+        if code == '5' or code == '5':
+            team = self.spinDur.get()
+            player = ''
+        else:
+            team = self.teams.index(self.cbb_team.get())
+            player = self.txt_player.get()
+
+        self.req.command('insertDetail', (id, self.details[0][0], code, team, player, time))
+        
     def change(self):
         pass
     def cancel(self):
