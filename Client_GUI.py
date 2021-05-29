@@ -740,7 +740,7 @@ class detailGUI:
         self.match = match
         self.score = (0, 0)
 
-        self.lbl_ID = Label(self.master, font=(None, 12))
+        self.lbl_ID = Label(self.master)
         self.lbl_ID.config(text = match)
 
         self.lbl_time = Label(self.master, font=(None, 12))
@@ -761,18 +761,27 @@ class detailGUI:
             self.btn_deleteEvent = Button(self.master, text = "Delete event", width = 10, height = 1, command = self.deleteEvent)
             self.btn_deleteEvent.place(x = 210, y = 0)
 
+            self.isCheck = tk.IntVar()
+            self.checkbox = tk.Checkbutton(self.master, text = 'Show all event', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+            self.checkbox.select()
+            self.checkbox.place(x = 310, y = 0)
+
             self.lbl_ID.place(x = 10, y = 30)
             self.lbl_time.place( x = 600, y = 30)
             self.master.update()
             self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 60)
+            self.master.update()
             self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 60)
+            self.master.update()
             self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 60)
         else:
             self.lbl_ID.place(x = 10, y = 0)
             self.lbl_time.place( x = 600, y = 0)
             self.master.update()
             self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 30)
+            self.master.update()
             self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 30)
+            self.master.update()
             self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 30)
 
         # columns
@@ -878,6 +887,13 @@ class detailGUI:
 
     def deleteEvent(self):
         pass
+
+    def checker(self):
+        pass
+        # if self.isCheck.get() == 0:
+            
+        # if self.isCheck.get() == 1:
+
 
 class addEventGUI:
     def __init__(self, master, parent, services, match, event):
