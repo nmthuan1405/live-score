@@ -1,5 +1,9 @@
 import socket
 import pickle
+import queue
+import threading
+import uuid
+from datetime import datetime
 
 class Client:
     def __init__(self, serverAddr, port = 1234, delim = b'\x00'):
@@ -119,5 +123,123 @@ class Client:
     def s_getMatchID(self, id):
         self.send_str('getMatchID')
         self.send_str(id)
-
         return self.recv_obj()
+
+    def s_getDetails(self, match):
+        self.send_str('getDls')
+        self.send_str(match)
+        return self.recv_obj()
+
+    def s_delDetails(self, match):
+        self.send_str('delDls')
+        self.send_str(match)
+        return self.recv_state()
+
+    def s_editDetail(self, id, code, team, player, time):
+        self.send_str('editDetail')
+        self.send_str(id)
+        self.send_str(code)
+        self.send_str(team)
+        self.send_str(player)
+        self.send_str(time)
+        return self.recv_state()
+
+    def s_insertDetail(self, id, match, code, team, player, time):
+        self.send_str('insertDetail')
+        self.send_str(id)
+        self.send_str(match)
+        self.send_str(code)
+        self.send_str(team)
+        self.send_str(player)
+        self.send_str(time)
+        return self.recv_state()
+
+    def s_delDetail(self, id):
+        self.send_str('delDetail')
+        self.send_str(id)
+        return self.recv_state()
+
+    def s_getHT(self, id):
+        self.send_str('getHT')
+        self.send_str(id)
+        return self.recv_obj()
+
+class QueueServer():
+    def __init__(self, services):
+        self.services = services
+
+        self.request = queue.Queue()
+        self.client_thread = None
+        self.result = {}
+
+    def run(self):
+        while True:
+            id, cmd, arg = self.request.get()
+
+            if cmd == 'listAll':
+                res = self.services.s_getMatch()
+            elif cmd == 'addMatch':
+                res = self.services.s_addMatch(arg[0], arg[1], arg[2], arg[3])
+            elif cmd == 'editMatch':
+                res = self.services.s_editMatch(arg[0], arg[1], arg[2], arg[3])
+            elif cmd == 'delMatch':
+                res = self.services.s_delMatch(arg)
+            elif cmd == 'getMatch':
+                res = self.services.s_getMatchID(arg)
+            elif cmd == 'getDls':
+                res = self.services.s_getDetails(arg)
+            elif cmd == 'delDls':
+                res = self.services.s_delDetails(arg)
+            elif cmd == 'editDetail':
+                res = self.services.s_editDetail(arg[0], arg[1], arg[2], arg[3], arg[4])
+            elif cmd == 'insertDetal':
+                res = self.services.s_insertDetail(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5])
+            elif cmd == 'delDetail':
+                res = self.services.s_delDetail(arg)
+            elif cmd == 'getHT':
+                res = self.services.s_getHT(arg)
+            if cmd == 'exit':
+                break
+
+            self.result[id] = res
+   
+    def start(self):
+        if self.client_thread is None:
+            self.client_thread = threading.Thread(target = self.run)
+            self.client_thread.start()
+
+    def stop(self):
+        if self.client_thread is not None:
+            self.command('exit')
+            self.client_thread.join()
+            self.client_thread = None
+
+    def command(self, cmd, arg = ()):
+        id = uuid.uuid4().hex
+        self.request.put((id, cmd, arg))
+
+        if cmd != 'exit':
+            while True:
+                if id in self.result:
+                    res = self.result[id]
+                    self.result.pop(id)
+                    return res
+
+
+def calcTime(startTime, ht_start, ht_len, ot):
+    startTime = datetime.strptime(startTime, '%Y-%m-%d %H:%M')
+    
+    if datetime.now() < startTime:
+        return startTime.strftime('%H:%M')
+    time = (datetime.now() - startTime).seconds / 60
+
+    if time < ht_start:
+        return str(int(time)) + '\''
+    elif time < ht_start + ht_len:
+        return 'HT'
+    elif time < 90 + ht_len:
+        return str(int(time - ht_len)) + '\''
+    elif time < 90 + ht_len + ot:
+        return str(int(time - ht_len)) + '\' + ' + str(int(time - 90)) + '\''
+    else:
+        return 'FT'

@@ -29,10 +29,21 @@ class Database:
         self.execute(cmd, val)
         self.con.commit()
 
+    def updates(self, rows):
+        try:
+            for row in rows:
+                cmd, val = row
+                self.execute(cmd, val)
+        except:
+            self.con.rollback()
+            raise Exception
+        else:
+            self.con.commit()
+
     def createTable(self):
         self.execute("CREATE TABLE IF NOT EXISTS auth(user text, pass text, isAdmin int, PRIMARY KEY (user))")
         self.execute("CREATE TABLE IF NOT EXISTS match(id text, time text, team1 text, team2 text, score text, isDone int, PRIMARY KEY (id))")
-        self.execute("CREATE TABLE IF NOT EXISTS detail(match text, id text, time int, type int, team int, player text, PRIMARY KEY (id), FOREIGN KEY (match) REFERENCES match(id))")
+        self.execute("CREATE TABLE IF NOT EXISTS detail(match text, id text, time int, code int, team int, player text, PRIMARY KEY (id), FOREIGN KEY (match) REFERENCES match(id))")
 
         self.update("INSERT INTO auth VALUES ('admin', 'admin', 1)")
 
@@ -47,7 +58,8 @@ class Database:
         return None
 
     def insertMatch(self, id, team1Name, team2Name, time):
-        return self.command('update', "INSERT INTO match VALUES (?, ?, ?, ?, '', 0)", (id, time, team1Name, team2Name))
+        return self.command('updates', [("INSERT INTO match VALUES (?, ?, ?, ?, '', 0)", (id, time, team1Name, team2Name)),
+                                        ("INSERT INTO detail VALUES (?, ?, '45', 4, '15', '')", (id, uuid.uuid4().hex))])
 
     def getMatch(self):
         return self.command('query', 'SELECT * FROM match ORDER BY datetime(time)')
@@ -56,25 +68,28 @@ class Database:
         return self.command('query', "SELECT * FROM match WHERE id = ?", (id,))
 
     def editMatch(self, id, team1Name, team2Name, time):
-        return self.command('update', "UPDATE match SET team1 = ?, team2 = ?, time = ?, isDone = 0 WHERE id = ?", (team1Name, team2Name, time, id))
+        return self.command('update', "UPDATE match SET team1 = ?, team2 = ?, time = ?, isDone = 0 WHERE id = ?", (team1Name, team2Name, time, id)) 
 
     def deleteMatch(self, id):
-        return self.command('update', "DELETE FROM match WHERE id = ?", (id,))
+        return self.command('updates', [("DELETE FROM detail WHERE match = ?", (id,)), ("DELETE FROM match WHERE id = ?", (id,))])
 
     def getDetails(self, match):
-        return self.command('query', "SELECT * FROM detail WHERE match = ? ORDER BY datetime(time)", (match,))
+        return self.command('query', "SELECT * FROM detail WHERE match = ? ORDER BY datetime(time, '%Y-%m-%d %H:%M')", (match,))
 
     def delDetails(self, match):
         return self.command('update', "DELETE FROM detail WHERE match = ?", (match,))
 
-    def insertDetail(self, match, id, type, time, team, player):
-        return self.command('update', 'INSERT INTO detail VALUES (?, ?, ?, ?, ?, ?)', (match, id, time, type, team, player))
+    def insertDetail(self, match, id, code, time, team, player):
+        return self.command('update', 'INSERT INTO detail VALUES (?, ?, ?, ?, ?, ?)', (match, id, time, code, team, player))
 
-    def editDetail(self, id, type, time, team, player):
-        return self.command('update', "UPDATE detail SET time = ?, type = ?, team = ?, player = ? WHERE id = ?", (time, type, team, player, id))
+    def editDetail(self, id, code, time, team, player):
+        return self.command('update', "UPDATE detail SET time = ?, type = ?, team = ?, player = ? WHERE id = ?", (time, code, team, player, id))
 
     def delDetail(self, id):
         return self.command('update', "DELETE FROM detail WHERE id = ?", (id,))
+
+    def getHT(self, match):
+        return self.command('query', "SELECT time, team FROM detail WHERE match = ?", (match,))
 
     def run(self):
         while True:
@@ -85,6 +100,8 @@ class Database:
                     res = self.query(cmd, val)
                 elif req == 'update':
                     self.update(cmd, val)
+                elif req == 'updates':
+                    self.updates(cmd)
                 elif req == 'exit':
                     break
             except:

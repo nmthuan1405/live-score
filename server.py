@@ -1,7 +1,9 @@
 import socket
 import pickle
+from sqlite3.dbapi2 import sqlite_version_info
 import threading
 from tkinter import INSERT
+import uuid
 import database
 
 class Server:
@@ -134,6 +136,10 @@ class Client:
                             self.c_getMatch()
                         elif flag == 'getMatchID':
                             self.c_getMatchID()
+                        elif flag == 'getDls':
+                            self.c_getDetails()
+                        elif flag == 'getHT':
+                            self.c_getHT()
 
                         if self.isAdmin:
                             if flag == 'addMatch':
@@ -142,6 +148,14 @@ class Client:
                                 self.c_editMatch()
                             elif flag == 'delMatch':
                                 self.c_delMatch()
+                            elif flag == 'delDls':
+                                self.c_delDetails()
+                            elif flag == 'editDetail':
+                                self.c_editDetail()
+                            elif flag == 'insertDetail':
+                                self.c_insertDetail()
+                            elif flag == 'delDetail':
+                                self.c_delDetail()
 
             # except:
             #     if self.isClosed():
@@ -240,7 +254,9 @@ class Client:
         self.writeLog('SIGN OUT')
 
     def c_addMatch(self):
-        id, team1Name, team2Name, time = self.recv_obj()
+        match, team1Name, team2Name, time = self.recv_obj()
+        id = uuid.uuid4().hex
+
         self.send_state(self.db.insertMatch(id, team1Name, team2Name, time))
 
         self.writeLog(f'Add match. ID: {id}')
@@ -263,3 +279,39 @@ class Client:
     def c_getMatchID(self):
         id = self.recv_str()
         self.send_obj(self.db.getMatchID(id))
+
+    def c_getDetails(self):
+        match = self.recv_str()
+        self.send_obj(self.db.getDetails(match))
+
+    def c_delDetails(self):
+        match = self.recv_str()
+        self.send_state(self.db.delDetails(match))
+
+    def c_insertDetail(self):
+        id = self.recv_str()
+        match = self.recv_str()
+        code = self.recv_str()
+        team = self.recv_str()
+        player = self.recv_str()
+        time = self.recv_str()
+
+        self.send_state(self.db.insertDetail(match, id, code, time, team, player))
+
+    def c_editDetail(self):
+        id = self.recv_str()
+        code = self.recv_str()
+        team = self.recv_str()
+        player = self.recv_str()
+        time = self.recv_str()
+
+        self.send_state(self.db.editDetail(id, code, time, team, player))
+
+    def c_delDetail(self):
+        id = self.recv_str()
+
+        self.send_state(self.db.deDetail(id))
+
+    def c_getHT(self):
+        id = self.recv_str()
+        self.send_obj(self.db.getHT(id))
