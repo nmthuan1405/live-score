@@ -83,7 +83,7 @@ class Database:
         return self.command('updates', [("DELETE FROM detail WHERE match = ?", (id,)), ("DELETE FROM match WHERE id = ?", (id,))])
 
     def getDetails(self, match):
-        return self.command('query', "SELECT * FROM detail WHERE match = ? ORDER BY datetime(time)", (match,))
+        return self.command('query', "SELECT * FROM detail WHERE match = ? ORDER BY time", (match,))
 
     def insertDetail(self, match, id, code, time, team, player):
         return self.command('update', 'INSERT INTO detail VALUES (?, ?, ?, ?, ?, ?)', (match, id, time, code, team, player))
@@ -95,10 +95,10 @@ class Database:
         return self.command('update', "DELETE FROM detail WHERE id = ?", (id,))
 
     def getHT(self, match):
-        return self.command('query', "SELECT time, team FROM detail WHERE match = ? AND code = 4", (match, ))
+        return self.command('query', "SELECT time, team FROM detail WHERE match = ? AND code = 4 ORDER BY time", (match, ))
     
     def getGoal(self, match):
-        return self.command('query', "SELECT time, team FROM detail WHERE match = ? AND code = 1", (match, ))
+        return self.command('query', "SELECT time, team FROM detail WHERE match = ? AND code = 1  ORDER BY time", (match, ))
     
 
     def run(self):

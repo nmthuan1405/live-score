@@ -212,8 +212,10 @@ class QueueServer():
                 res = self.services.s_getGoal(arg)
             elif cmd == 'listAllDate':
                 res = self.services.s_getAllDate(arg)
-            if cmd == 'exit':
+            elif cmd == 'exit':
                 break
+            else:
+                res = False
 
             self.result[id] = res
    

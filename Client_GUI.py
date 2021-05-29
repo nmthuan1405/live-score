@@ -193,6 +193,7 @@ class userGUI:
         self.services = services
 
         self.req = client.QueueServer(self.services)
+        self.details = {}
 
         self.parent.withdraw()
 
@@ -300,26 +301,52 @@ class userGUI:
         matches = []
         if matches_tuple != []:
             for element in matches_tuple:
+                haveDetail = element[0] in [*self.details]
+                if haveDetail:
+                    details = self.req.command('getDls', element[0])
+                    self.details[element[0]] = [element, details]
+
                 if element[6] == 1: 
                     time = 'FT'
                     score = str(element[4]) + ' - ' + str(element[5])
+                
                 else:
-
-                    ht = self.req.command('getHT', element[0])
-                    if not ht:
+                    if haveDetail:
                         ht_start, ht_len = 45, 0
-                    else:
-                        ht_start, ht_len = ht[0]
+                        for detail in details:
+                            if detail[3] == 4:
+                                ht_start = detail[2]
+                                ht_len = detail[4]
+                                break
 
+                    else:
+                        ht = self.req.command('getHT', element[0])
+                        if not ht:
+                            ht_start, ht_len = 45, 0
+                        else:
+                            ht_start, ht_len = ht[0]
+
+                    
                     time, timeInt = client.calcTime(element[1], int(ht_start), int(ht_len), 0)
                     
                     if timeInt != -1:
                         score = [0, 0]
-                        goals = self.req.command('getGoal', element[0])
-                        if goals:
-                            for goal in goals:
-                                if goal[0] <= timeInt:
-                                    score[goal[1]] += 1
+
+                        if haveDetail:
+                            for detail in details:
+                                if detail[2] <= timeInt:
+                                    if detail[3] == 1:
+                                        score[detail[5]] += 1
+                                else:
+                                    break
+                        else:
+                            goals = self.req.command('getGoal', element[0])
+                            if goals:
+                                for goal in goals:
+                                    if goal[0] <= timeInt:
+                                        score[goal[1]] += 1
+                                    else:
+                                        break
 
                         score = str(score[0]) + ' - ' + str(score[1])
                     else:
@@ -355,7 +382,7 @@ class userGUI:
             return
 
         window_detail = Toplevel(self.master)
-        detailGUI(window_detail, self.master, self.services, self.req, match[0])
+        detailGUI(window_detail, self.master, self.services, self.req, self.details, match[0])
         center(window_detail)
         window_detail.mainloop()
 
@@ -392,8 +419,8 @@ class userGUI:
         window_editAccount.mainloop()
 
     def signOut(self):
-        self.services.s_signOut()
         self.req.stop()
+        self.services.s_signOut()
 
         self.master.destroy()
         windowsGlo.remove(self.master)
@@ -528,27 +555,28 @@ class addMatchGUI:
         hour = self.spinHour.get()
         min = self.spinMin.get()
 
-        if team1 == '' or team2 == '':
+
+        if team1 == '' or team2 == '' or (not hour.isdigit()) or (not min.isdigit()) or int(hour) < 0 or int(hour) > 23 or int(min) < 0 or int(min) > 59:
             showerror('Erorr', 'Invalid input')
             return
 
-        time = str(self.txt_date.get_date()) + ' ' + hour + ':' + min
+        time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
         if not self.req.command('editMatch', (id, team1, team2, time)):
-            showerror('Error', 'Unable to create new match')
+            showerror('Error', 'Unable to change match\'s information')
 
     def add(self):
-
         id = self.txt_ID.get()
         team1 = self.txt_team1.get()
         team2 = self.txt_team2.get()
         hour = self.spinHour.get()
         min = self.spinMin.get()
 
-        if id == '' or team1 == '' or team2 == '':
+
+        if team1 == '' or team2 == '' or (not hour.isdigit()) or (not min.isdigit()) or int(hour) < 0 or int(hour) > 23 or int(min) < 0 or int(min) > 59:
             showerror('Erorr', 'Invalid input')
             return
 
-        time = str(self.txt_date.get_date()) + ' ' + hour + ':' + min
+        time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
         if not self.req.command('addMatch', (id, team1, team2, time)):
             showerror('Error', 'Unable to create new match')
 
@@ -721,10 +749,11 @@ class editGUI:
 
 
 class detailGUI:
-    def __init__(self, master, parent, services, req, match):
+    def __init__(self, master, parent, services, req, details, match):
         windowsGlo.append(master)
-        self.services = services
         self.master = master
+        self.services = services
+
         if self.services.isAdmin:
             self.master.title("Match details")
         else:
@@ -738,7 +767,8 @@ class detailGUI:
         self.parent = parent
         self.req = req
         self.match = match
-        self.score = (0, 0)
+        self.details = details
+        self.details[match] = None
 
         self.lbl_ID = Label(self.master, font=(None, 12))
         self.lbl_ID.config(text = match)
@@ -814,43 +844,42 @@ class detailGUI:
         self.schedule()
 
     def schedule(self):
-        match = self.req.command('getMatch', self.match)
-        if match:
-            match = match[0]
-        else:
-            return
-            
-        self.lbl_team1.config(text = match[2])
-        self.lbl_team2.config(text = match[3])
+        if self.details[self.match] is not None:
+            match, details = self.details[self.match]
+    
+            self.lbl_team1.config(text = match[2])
+            self.lbl_team2.config(text = match[3])
 
-        choosen = self.tree.item(self.tree.focus())['values']
-        for row in self.tree.get_children():
-            self.tree.delete(row)
-
-        details = self.req.command('getDls', self.match)
-        for detail in details:
-            self.tree.insert('', tk.END, values = detail[2:5])
-
-        if choosen != '':
-            id = None
+            choosen = self.tree.item(self.tree.focus())['values']
             for row in self.tree.get_children():
-                if self.tree.item(row)['values'][0] == choosen[0]:
-                    id = row
-                    break
+                self.tree.delete(row)
 
-            if id is not None: 
-                self.tree.selection_set(id)   
-                self.tree.focus(id)
+            for detail in details:
+                self.tree.insert('', tk.END, values = detail[2:5])
 
-        score = str(self.score[0]) + ' - ' + str(self.score[1])
-        self.lbl_score.config(text = score)
+            if choosen != '':
+                id = None
+                for row in self.tree.get_children():
+                    if self.tree.item(row)['values'][0] == choosen[0]:
+                        id = row
+                        break
+
+                if id is not None: 
+                    self.tree.selection_set(id)   
+                    self.tree.focus(id)
+
+            #score = str(self.score[0]) + ' - ' + str(self.score[1])
+            #self.lbl_score.config(text = score)
         
         self.master.after(timeout, self.schedule)
 
     def on_closing(self):
+        self.details.pop(self.match)
+
         self.master.destroy()
         self.parent.focus()
         self.parent.grab_set()
+
         windowsGlo.remove(self.master)
 
     def addEvent(self, match, parent):

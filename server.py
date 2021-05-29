@@ -258,8 +258,7 @@ class Client:
         self.writeLog('SIGN OUT')
 
     def c_addMatch(self):
-        match, team1Name, team2Name, time = self.recv_obj()
-        id = uuid.uuid4().hex
+        id, team1Name, team2Name, time = self.recv_obj()
 
         self.send_state(self.db.insertMatch(id, team1Name, team2Name, time))
 
@@ -318,7 +317,6 @@ class Client:
 
     def c_getHT(self):
         id = self.recv_str()
-        print(self.db.getHT(id))
         self.send_obj(self.db.getHT(id))
 
     def c_getGoal(self):
