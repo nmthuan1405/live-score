@@ -164,6 +164,16 @@ class Client:
         self.send_str(id)
         return self.recv_obj()
 
+    def s_getGoal(self, id):
+        self.send_str('getGoal')
+        self.send_str(id)
+        return self.recv_obj()
+
+    def s_getAllDate(self, date):
+        self.send_str('getAllDate')
+        self.send_str(date)
+        return self.recv_obj()
+
 class QueueServer():
     def __init__(self, services):
         self.services = services
@@ -198,6 +208,10 @@ class QueueServer():
                 res = self.services.s_delDetail(arg)
             elif cmd == 'getHT':
                 res = self.services.s_getHT(arg)
+            elif cmd == 'getGoal':
+                res = self.services.s_getGoal(arg)
+            elif cmd == 'listAllDate':
+                res = self.services.s_getAllDate(arg)
             if cmd == 'exit':
                 break
 
@@ -230,16 +244,16 @@ def calcTime(startTime, ht_start, ht_len, ot):
     startTime = datetime.strptime(startTime, '%Y-%m-%d %H:%M')
     
     if datetime.now() < startTime:
-        return startTime.strftime('%H:%M')
-    time = (datetime.now() - startTime).seconds / 60
+        return startTime.strftime('%H:%M'), -1
+    time = int ((datetime.now() - startTime).seconds / 60)
 
     if time < ht_start:
-        return str(int(time)) + '\''
+        return str(time) + '\'', time
     elif time < ht_start + ht_len:
-        return 'HT'
+        return 'HT', ht_start
     elif time < 90 + ht_len:
-        return str(int(time - ht_len)) + '\''
+        return str(time - ht_len) + '\'', time - ht_len
     elif time < 90 + ht_len + ot:
-        return str(int(time - ht_len)) + '\' + ' + str(int(time - 90)) + '\''
+        return str(time - ht_len) + '\' + ' + str(time - 90) + '\'', time - ht_len
     else:
-        return 'FT'
+        return 'FT', time - ht_len

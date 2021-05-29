@@ -292,24 +292,40 @@ class userGUI:
             self.txt_date.config(state = 'disabled')
 
     def schedule(self):
-        matches_tuple = self.req.command('listAll')
-        
+        if self.isCheck.get() == 1:
+            matches_tuple = self.req.command('listAll')
+        else:
+            matches_tuple = self.req.command('listAllDate', str(self.txt_date.get_date()))
+
         matches = []
-        for element in matches_tuple:
-            if element[5] == 1: 
-                time = 'FT'
-                score = element[4]
-            else:
-                ht = self.req.command('getHT', element[0])
-                if not ht:
-                    ht_start, ht_len = 45, 0
+        if matches_tuple != []:
+            for element in matches_tuple:
+                if element[6] == 1: 
+                    time = 'FT'
+                    score = str(element[4]) + ' - ' + str(element[5])
                 else:
-                    ht_start, ht_len = ht[0]
 
-                time = client.calcTime(element[1], int(ht_start), int(ht_len), 0)
-                score = element[4]
+                    ht = self.req.command('getHT', element[0])
+                    if not ht:
+                        ht_start, ht_len = 45, 0
+                    else:
+                        ht_start, ht_len = ht[0]
 
-            matches.append([element[0], time, element[2], score, element[3]])
+                    time, timeInt = client.calcTime(element[1], int(ht_start), int(ht_len), 0)
+                    
+                    if timeInt != -1:
+                        score = [0, 0]
+                        goals = self.req.command('getGoal', element[0])
+                        if goals:
+                            for goal in goals:
+                                if goal[0] <= timeInt:
+                                    score[goal[1]] += 1
+
+                        score = str(score[0]) + ' - ' + str(score[1])
+                    else:
+                        score = '? - ?'
+
+                matches.append([element[0], time, element[2], score, element[3]])
 
 
         choosen = self.tree.item(self.tree.focus())['values']
