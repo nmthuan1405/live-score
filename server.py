@@ -140,6 +140,10 @@ class Client:
                             self.c_getDetails()
                         elif flag == 'getHT':
                             self.c_getHT()
+                        elif flag == 'getGoal':
+                            self.c_getGoal()
+                        elif flag == 'getAllDate':
+                            self.c_getAllDate()
 
                         if self.isAdmin:
                             if flag == 'addMatch':
@@ -314,4 +318,13 @@ class Client:
 
     def c_getHT(self):
         id = self.recv_str()
+        print(self.db.getHT(id))
         self.send_obj(self.db.getHT(id))
+
+    def c_getGoal(self):
+        id = self.recv_str()
+        self.send_obj(self.db.getGoal(id))
+
+    def c_getAllDate(self):
+        date = self.recv_str()
+        self.send_obj(self.db.getMatchDate(date))
