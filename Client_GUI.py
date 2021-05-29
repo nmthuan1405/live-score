@@ -1003,6 +1003,13 @@ class addEventGUI:
 
         self.txt_player = Entry(self.master)
 
+        if event is None:
+            self.lbl_team.grid(column = 0, row = 5, sticky = W)
+            self.cbb_team.grid(column = 0, row = 6, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+            self.lbl_player.grid(column = 0, row = 7, sticky = W)
+            self.txt_player.grid(column = 0, row = 8, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
         self.lbl_time = Label(self.master, text = 'Time')
         self.lbl_time.grid(column = 0, row = 9, sticky = W)
 
