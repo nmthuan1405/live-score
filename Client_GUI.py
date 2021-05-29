@@ -14,21 +14,7 @@ import uuid
 import threading
 from datetime import datetime
 
-windowsGlo = list()
 timeout = 5000
-
-def center(toplevel):
-    toplevel.update_idletasks()
-
-
-    screen_width = toplevel.winfo_screenwidth()
-    screen_height = toplevel.winfo_screenheight()
-
-    size = tuple(int(_) for _ in toplevel.geometry().split('+')[0].split('x'))
-    x = screen_width/2 - size[0]/2
-    y = screen_height/2 - size[1]/2
-
-    toplevel.geometry("+%d+%d" % (x, y))
 
 class ClientGUI:
     def __init__(self, master):
@@ -99,8 +85,6 @@ class ClientGUI:
     
     def report_callback_exception(self, *args):
         self.services = None
-        # for windows in windowsGlo:
-        #     windows.destroy()
 
         self.txt_IP_input.config(state = 'normal')
         self.btn_connect.config(text = 'Connect')
@@ -172,7 +156,6 @@ class ClientGUI:
 
         window_user = Toplevel(self.master)
         userGUI(window_user, self.master, self.services)
-        center(window_user)
         window_user.mainloop()
 
     def exit(self):
@@ -186,8 +169,6 @@ class ClientGUI:
 
 class userGUI:
     def __init__(self, master, parent, services):
-        windowsGlo.append(master)
-
         self.master = master
         self.parent = parent
         self.services = services
@@ -383,7 +364,6 @@ class userGUI:
 
         window_detail = Toplevel(self.master)
         detailGUI(window_detail, self.master, self.services, self.req, self.details, match[0])
-        center(window_detail)
         window_detail.mainloop()
 
 
@@ -395,13 +375,11 @@ class userGUI:
 
         window_edit = Toplevel(self.master)
         addMatchGUI(window_edit, self.master, self.services, self.req, match[0])
-        center(window_edit)
         window_edit.mainloop()
 
     def addMatch(self):
         window_addMatch = Toplevel(self.master)
         addMatchGUI(window_addMatch, self.master, self.services, self.req)
-        center(window_addMatch)
         window_addMatch.mainloop()
 
     def delete(self):
@@ -415,7 +393,6 @@ class userGUI:
     def editAccount(self, parent):
         window_editAccount = Toplevel(self.master)
         editAccountGUI(window_editAccount, parent, self.services)
-        center(window_editAccount)
         window_editAccount.mainloop()
 
     def signOut(self):
@@ -423,334 +400,10 @@ class userGUI:
         self.services.s_signOut()
 
         self.master.destroy()
-        windowsGlo.remove(self.master)
-
         self.parent.deiconify()
-
-class addMatchGUI:
-    def __init__(self, master, parent, services, req, match = None):
-        windowsGlo.append(master)
-        self.services = services
-        self.master = master
-        if match is None:
-            self.master.title("Add match")
-        else:
-            self.master.title("Edit match")
-        # self.master.resizable(0, 0)
-        self.master.focus()
-        self.master.grab_set()
-        self.master['padx'] = 10
-        self.master['pady'] = 10
-
-        self.parent = parent
-        self.req = req
-
-        self.master.columnconfigure(0, weight=1)
-        self.master.columnconfigure(1, weight=1)
-        self.master.columnconfigure(2, weight=1)
-
-        self.lbl_ID = Label(self.master, text = 'ID')
-        self.lbl_ID.grid(row = 0, column = 0, sticky = W)
-
-        self.txt_ID = Entry(self.master)
-        self.txt_ID.focus()
-        self.txt_ID.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
-        
-        if (match is not None):
-            self.txt_ID.insert(-1, match)
-            self.txt_ID.config(state = 'readonly')
-        else:
-            self.txt_ID.grid(row = 1, column = 0, columnspan = 2, sticky = EW, padx = 0)
-            self.isCheck = tk.IntVar()
-            self.isDefault = tk.Checkbutton(self.master, text = 'Default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
-            self.isDefault.select()
-
-            self.txt_ID.insert(-1, uuid.uuid4().hex)
-            self.txt_ID.config(state = 'readonly')
-
-            self.isDefault.grid(row = 1, column = 2, sticky = E)
-
-        self.lbl_team1 = Label(self.master, text = '1st Team')
-        self.lbl_team1.grid(row = 2, column = 0, sticky = W)
-
-        self.txt_team1 = Entry(self.master)
-        self.txt_team1.grid(row = 3, column = 0, columnspan = 3, sticky = EW, padx = 0)
-
-        self.lbl_team2 = Label(self.master, text = '2nd Team')
-        self.lbl_team2.grid(row = 4, column = 0, sticky = W)
-
-        self.txt_team2 = Entry(self.master)
-        self.txt_team2.grid(row = 5, column = 0, columnspan = 3, sticky = EW, padx = 0)
-
-        self.lbl_time = Label(self.master, text = 'Time')
-        self.lbl_time.grid(row = 6, column = 0, sticky = W)
-
-        self.txt_date = DateEntry(self.master, width=12, background='darkblue', foreground='white', borderwidth=2)
-        self.txt_date.grid(row = 7, column = 0)
-
-        self.currHour = tk.IntVar(value = 0)
-        self.spinHour = ttk.Spinbox(self.master, from_=0, to=23, width = 5, textvariable=self.currHour, wrap=True)
-        self.spinHour.grid(row = 7, column = 1, sticky = E)
-
-        self.lbl_seperator = Label(self.master, text = ':', font=(None, 12, BOLD))
-        self.lbl_seperator.grid(row = 7, column = 2, sticky = W, padx = 4)
-
-        self.currMin = tk.IntVar(value = 0)
-        self.spinMin = ttk.Spinbox(self.master, from_=0, to=59, width = 5, textvariable=self.currMin, wrap=True)
-        self.spinMin.grid(row = 7, column = 2, sticky = E)
-
-        if match is not None:
-            self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
-            self.btn_change.grid(row = 9, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
-        else:
-            self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
-            self.btn_add.grid(row = 9, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
-
-        self.btn_cancel = Button(self.master, text="Cancel", command = self.on_closing, width = 8)
-        self.btn_cancel.grid(row = 9, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
-
-        col_count, row_count = self.master.grid_size()
-        for col in range(col_count):
-            self.master.grid_columnconfigure(col, minsize = 70)
-        for row in range(row_count):
-            self.master.grid_rowconfigure(row, minsize = 15)
-
-        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-        if match is not None:
-            data = self.req.command('getMatch', match)
-            if data and len(data) == 1:
-                data = data[0]
-
-                self.txt_team1.insert(-1, data[2])
-                self.txt_team2.insert(-1, data[3])
-
-                date = datetime.strptime(data[1], '%Y-%m-%d %H:%M')
-                self.txt_date.set_date(date)
-                self.spinHour.delete(0, END)
-                self.spinHour.insert(-1, date.hour)
-                self.spinMin.delete(0, END)
-                self.spinMin.insert(-1, date.minute)
-
-    def on_closing(self):
-        self.master.destroy()
-        self.parent.focus()
-        self.parent.grab_set()
-
-        windowsGlo.remove(self.master)
-
-    def checker(self):
-        if self.isCheck.get() == 0:
-            self.txt_ID.config(state = 'normal')
-            self.txt_ID.delete(0, END)
-        if self.isCheck.get() == 1:
-            self.txt_ID.delete(0, END)
-            self.txt_ID.insert(-1, uuid.uuid4().hex)
-            self.txt_ID.config(state = 'readonly')
-
-    def change(self):
-        id = self.txt_ID.get()
-        team1 = self.txt_team1.get()
-        team2 = self.txt_team2.get()
-        hour = self.spinHour.get()
-        min = self.spinMin.get()
-
-
-        if team1 == '' or team2 == '' or (not hour.isdigit()) or (not min.isdigit()) or int(hour) < 0 or int(hour) > 23 or int(min) < 0 or int(min) > 59:
-            showerror('Erorr', 'Invalid input')
-            return
-
-        time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
-        if not self.req.command('editMatch', (id, team1, team2, time)):
-            showerror('Error', 'Unable to change match\'s information')
-
-    def add(self):
-        id = self.txt_ID.get()
-        team1 = self.txt_team1.get()
-        team2 = self.txt_team2.get()
-        hour = self.spinHour.get()
-        min = self.spinMin.get()
-
-
-        if team1 == '' or team2 == '' or (not hour.isdigit()) or (not min.isdigit()) or int(hour) < 0 or int(hour) > 23 or int(min) < 0 or int(min) > 59:
-            showerror('Erorr', 'Invalid input')
-            return
-
-        time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
-        if not self.req.command('addMatch', (id, team1, team2, time)):
-            showerror('Error', 'Unable to create new match')
-
-        self.txt_ID.config(state = 'normal')
-        self.txt_ID.delete(0, END)
-        self.txt_ID.insert(-1, uuid.uuid4().hex)
-        self.txt_ID.config(state = 'readonly')
-
-
-
-class editAccountGUI:
-    def __init__(self, master, parent, services):
-        windowsGlo.append(master)
-        self.services = services
-        self.master = master
-        self.master.title("Edit account")
-        # self.master.resizable(0, 0)
-        self.master.focus()
-        self.master.grab_set()
-        self.master['padx'] = 10
-        self.master['pady'] = 10
-
-        self.parent = parent
-
-        self.btn_edit = Button(self.master, text="Edit", command = partial(self.edit, self.master), width = 8)
-        self.btn_edit.grid(row = 0, column = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
-
-        self.btn_add = Button(self.master, text="Add", command = partial(self.add, self.master), width = 8)
-        self.btn_add.grid(row = 0, column = 1, padx = 0, pady = 0, ipadx = 0)
-
-        self.btn_delete = Button(self.master, text="Delete", command = self.delete, width = 8)
-        self.btn_delete.grid(row = 0, column = 2, sticky = tk.E, padx = 0, pady = 0, ipadx = 0)
-
-        # columns
-        columns = ('#1', '#2', '#3')
-        self.tree = ttk.Treeview(self.master, columns = columns, show = 'headings', height = 20)
-
-        # style = ttk.Style()
-        # style.configure("Treeview.Heading", font=(None, 12, BOLD))
-        # style.configure("Treeview", font=(None, 12))
-
-        #config column width
-        self.tree.column("#1", anchor = 'center', minwidth = 50, width = 150)
-        self.tree.column("#2", anchor = 'center', minwidth = 50, width = 150)
-        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 100)
-
-        # define headings
-        self.tree.heading('#1', text='Username')
-        self.tree.heading('#2', text='Password')
-        self.tree.heading('#3', text='Is admin')
-
-        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 3, sticky='nsew')
-
-        # add a scrollbar
-        self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
-        self.tree.configure(yscroll = self.scrollbar.set)
-        self.scrollbar.grid(row = 1, column = 3, padx = 0, pady = 5, sticky = 'ns')
-
-        # add data
-        contacts = []
-        contacts.append(('admin', 'admin', 'Yes'))
-        contacts.append(('user', 'user', 'No', '2 - 1'))
-        for contact in contacts:
-            self.tree.insert('', tk.END, values=contact)
-        
-        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-    def edit(self, parent):
-        account = self.tree.item(self.tree.focus())['values']
-        if account == '':
-            return
-
-        window_edit = Toplevel(self.master)
-        editGUI(window_edit, parent, self.services, account)
-        center(window_edit)
-        window_edit.mainloop()
-
-    def add(self, parent):
-        window_add = Toplevel(self.master)
-        editGUI(window_add, parent, self.services, None)
-        center(window_add)
-        window_add.mainloop()
-
-    def delete(self):
-        pass
-
-    def on_closing(self):
-        self.master.destroy()
-        self.parent.focus()
-        self.parent.grab_set()
-        windowsGlo.remove(self.master)
-
-class editGUI:
-    def __init__(self, master, parent, services, account):
-        windowsGlo.append(master)
-        self.services = services
-        self.master = master
-        if account is not None:
-            self.master.title("Edit Account")
-        else:
-            self.master.title("Add Account")
-        # self.master.resizable(0, 0)
-        self.master.focus()
-        self.master.grab_set()
-        self.master['padx'] = 10
-        self.master['pady'] = 10
-
-        self.parent = parent
-
-        self.master.columnconfigure(0, weight=1)
-        self.master.columnconfigure(1, weight=1)
-        self.master.columnconfigure(2, weight=1)
-
-        self.lbl_user = Label(self.master, text = 'Username')
-        self.lbl_user.grid(row = 0, column = 0, sticky = W)
-
-        self.txt_user = Entry(self.master)
-        self.txt_user.focus()
-        self.txt_user.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
-
-        self.lbl_pass = Label(self.master, text = 'Password')
-        self.lbl_pass.grid(row = 2, column = 0, sticky = W)
-
-        self.txt_pass = Entry(self.master)
-        self.txt_pass.grid(row = 3, column = 0, columnspan = 3, sticky = EW, padx = 0)
-
-        self.isCheck = tk.IntVar()
-        self.isAdmin = tk.Checkbutton(self.master, text = 'Is admin', variable = self.isCheck, onvalue = 1, offvalue = 0)
-        self.isAdmin.grid(row = 4, column = 0, sticky = W)
-        # De lay gia tri checkbox:
-        # self.isCheck.get() == 1   #1: la admin
-
-        self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
-        self.btn_cancel.grid(row = 6, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
-
-        if account is not None:
-            self.txt_user.insert(-1, account[0])
-            self.txt_pass.insert(-1, account[1])
-            if account[2] == 'Yes':
-                self.isAdmin.select()
-
-            self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
-            self.btn_change.grid(row = 6, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
-        else:
-            self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
-            self.btn_add.grid(row = 6, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
-
-        col_count, row_count = self.master.grid_size()
-        for col in range(col_count):
-            self.master.grid_columnconfigure(col, minsize = 73)
-        for row in range(row_count):
-            self.master.grid_rowconfigure(row, minsize = 15)
-
-        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
-
-    def on_closing(self):
-        self.master.destroy()
-        self.parent.focus()
-        self.parent.grab_set()
-        windowsGlo.remove(self.master)
-
-    def change(self):
-        pass
-
-    def add(self):
-        pass
-
-    def cancel(self):
-        self.on_closing()
-
 
 class detailGUI:
     def __init__(self, master, parent, services, req, details, match):
-        windowsGlo.append(master)
         self.master = master
         self.services = services
 
@@ -895,12 +548,9 @@ class detailGUI:
         self.parent.focus()
         self.parent.grab_set()
 
-        windowsGlo.remove(self.master)
-
     def addEvent(self, match, parent):
         window_addEvent = Toplevel(self.master)
         addEventGUI(window_addEvent, parent, self.services, self.req, self.details, None)
-        center(window_addEvent)
         window_addEvent.mainloop()
 
     def editEvent(self, match, parent):
@@ -911,7 +561,6 @@ class detailGUI:
 
         window_editEvent = Toplevel(self.master)
         addEventGUI(window_editEvent, parent, self.services, match, '3')   # event[6] la loai event
-        center(window_editEvent)
         window_editEvent.mainloop()
 
     def deleteEvent(self):
@@ -926,7 +575,6 @@ class detailGUI:
 
 class addEventGUI:
     def __init__(self, master, parent, services, req, details, event):
-        windowsGlo.append(master)
         self.services = services
         self.req = req
         self.master = master
@@ -1093,10 +741,318 @@ class addEventGUI:
         pass
     def cancel(self):
         self.master.destroy()
-        windowsGlo.remove(self.master)
+
+class addMatchGUI:
+    def __init__(self, master, parent, services, req, match = None):
+        self.services = services
+        self.master = master
+        if match is None:
+            self.master.title("Add match")
+        else:
+            self.master.title("Edit match")
+        # self.master.resizable(0, 0)
+        self.master.focus()
+        self.master.grab_set()
+        self.master['padx'] = 10
+        self.master['pady'] = 10
+
+        self.parent = parent
+        self.req = req
+
+        self.master.columnconfigure(0, weight=1)
+        self.master.columnconfigure(1, weight=1)
+        self.master.columnconfigure(2, weight=1)
+
+        self.lbl_ID = Label(self.master, text = 'ID')
+        self.lbl_ID.grid(row = 0, column = 0, sticky = W)
+
+        self.txt_ID = Entry(self.master)
+        self.txt_ID.focus()
+        self.txt_ID.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
+        
+        if (match is not None):
+            self.txt_ID.insert(-1, match)
+            self.txt_ID.config(state = 'readonly')
+        else:
+            self.txt_ID.grid(row = 1, column = 0, columnspan = 2, sticky = EW, padx = 0)
+            self.isCheck = tk.IntVar()
+            self.isDefault = tk.Checkbutton(self.master, text = 'Default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+            self.isDefault.select()
+
+            self.txt_ID.insert(-1, uuid.uuid4().hex)
+            self.txt_ID.config(state = 'readonly')
+
+            self.isDefault.grid(row = 1, column = 2, sticky = E)
+
+        self.lbl_team1 = Label(self.master, text = '1st Team')
+        self.lbl_team1.grid(row = 2, column = 0, sticky = W)
+
+        self.txt_team1 = Entry(self.master)
+        self.txt_team1.grid(row = 3, column = 0, columnspan = 3, sticky = EW, padx = 0)
+
+        self.lbl_team2 = Label(self.master, text = '2nd Team')
+        self.lbl_team2.grid(row = 4, column = 0, sticky = W)
+
+        self.txt_team2 = Entry(self.master)
+        self.txt_team2.grid(row = 5, column = 0, columnspan = 3, sticky = EW, padx = 0)
+
+        self.lbl_time = Label(self.master, text = 'Time')
+        self.lbl_time.grid(row = 6, column = 0, sticky = W)
+
+        self.txt_date = DateEntry(self.master, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.txt_date.grid(row = 7, column = 0)
+
+        self.currHour = tk.IntVar(value = 0)
+        self.spinHour = ttk.Spinbox(self.master, from_=0, to=23, width = 5, textvariable=self.currHour, wrap=True)
+        self.spinHour.grid(row = 7, column = 1, sticky = E)
+
+        self.lbl_seperator = Label(self.master, text = ':', font=(None, 12, BOLD))
+        self.lbl_seperator.grid(row = 7, column = 2, sticky = W, padx = 4)
+
+        self.currMin = tk.IntVar(value = 0)
+        self.spinMin = ttk.Spinbox(self.master, from_=0, to=59, width = 5, textvariable=self.currMin, wrap=True)
+        self.spinMin.grid(row = 7, column = 2, sticky = E)
+
+        if match is not None:
+            self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
+            self.btn_change.grid(row = 9, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+        else:
+            self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
+            self.btn_add.grid(row = 9, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+
+        self.btn_cancel = Button(self.master, text="Cancel", command = self.on_closing, width = 8)
+        self.btn_cancel.grid(row = 9, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
+
+        col_count, row_count = self.master.grid_size()
+        for col in range(col_count):
+            self.master.grid_columnconfigure(col, minsize = 70)
+        for row in range(row_count):
+            self.master.grid_rowconfigure(row, minsize = 15)
+
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        if match is not None:
+            data = self.req.command('getMatch', match)
+            if data and len(data) == 1:
+                data = data[0]
+
+                self.txt_team1.insert(-1, data[2])
+                self.txt_team2.insert(-1, data[3])
+
+                date = datetime.strptime(data[1], '%Y-%m-%d %H:%M')
+                self.txt_date.set_date(date)
+                self.spinHour.delete(0, END)
+                self.spinHour.insert(-1, date.hour)
+                self.spinMin.delete(0, END)
+                self.spinMin.insert(-1, date.minute)
+
+    def on_closing(self):
+        self.master.destroy()
+        self.parent.focus()
+        self.parent.grab_set()
+
+    def checker(self):
+        if self.isCheck.get() == 0:
+            self.txt_ID.config(state = 'normal')
+            self.txt_ID.delete(0, END)
+        if self.isCheck.get() == 1:
+            self.txt_ID.delete(0, END)
+            self.txt_ID.insert(-1, uuid.uuid4().hex)
+            self.txt_ID.config(state = 'readonly')
+
+    def change(self):
+        id = self.txt_ID.get()
+        team1 = self.txt_team1.get()
+        team2 = self.txt_team2.get()
+        hour = self.spinHour.get()
+        min = self.spinMin.get()
+
+
+        if team1 == '' or team2 == '' or (not hour.isdigit()) or (not min.isdigit()) or int(hour) < 0 or int(hour) > 23 or int(min) < 0 or int(min) > 59:
+            showerror('Erorr', 'Invalid input')
+            return
+
+        time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
+        if not self.req.command('editMatch', (id, team1, team2, time)):
+            showerror('Error', 'Unable to change match\'s information')
+
+    def add(self):
+        id = self.txt_ID.get()
+        team1 = self.txt_team1.get()
+        team2 = self.txt_team2.get()
+        hour = self.spinHour.get()
+        min = self.spinMin.get()
+
+
+        if team1 == '' or team2 == '' or (not hour.isdigit()) or (not min.isdigit()) or int(hour) < 0 or int(hour) > 23 or int(min) < 0 or int(min) > 59:
+            showerror('Erorr', 'Invalid input')
+            return
+
+        time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
+        if not self.req.command('addMatch', (id, team1, team2, time)):
+            showerror('Error', 'Unable to create new match')
+
+        self.txt_ID.config(state = 'normal')
+        self.txt_ID.delete(0, END)
+        self.txt_ID.insert(-1, uuid.uuid4().hex)
+        self.txt_ID.config(state = 'readonly')
+
+class editAccountGUI:
+    def __init__(self, master, parent, services):
+        self.services = services
+        self.master = master
+        self.master.title("Edit account")
+        # self.master.resizable(0, 0)
+        self.master.focus()
+        self.master.grab_set()
+        self.master['padx'] = 10
+        self.master['pady'] = 10
+
+        self.parent = parent
+
+        self.btn_edit = Button(self.master, text="Edit", command = partial(self.edit, self.master), width = 8)
+        self.btn_edit.grid(row = 0, column = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+
+        self.btn_add = Button(self.master, text="Add", command = partial(self.add, self.master), width = 8)
+        self.btn_add.grid(row = 0, column = 1, padx = 0, pady = 0, ipadx = 0)
+
+        self.btn_delete = Button(self.master, text="Delete", command = self.delete, width = 8)
+        self.btn_delete.grid(row = 0, column = 2, sticky = tk.E, padx = 0, pady = 0, ipadx = 0)
+
+        # columns
+        columns = ('#1', '#2', '#3')
+        self.tree = ttk.Treeview(self.master, columns = columns, show = 'headings', height = 20)
+
+        # style = ttk.Style()
+        # style.configure("Treeview.Heading", font=(None, 12, BOLD))
+        # style.configure("Treeview", font=(None, 12))
+
+        #config column width
+        self.tree.column("#1", anchor = 'center', minwidth = 50, width = 150)
+        self.tree.column("#2", anchor = 'center', minwidth = 50, width = 150)
+        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 100)
+
+        # define headings
+        self.tree.heading('#1', text='Username')
+        self.tree.heading('#2', text='Password')
+        self.tree.heading('#3', text='Is admin')
+
+        self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 3, sticky='nsew')
+
+        # add a scrollbar
+        self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
+        self.tree.configure(yscroll = self.scrollbar.set)
+        self.scrollbar.grid(row = 1, column = 3, padx = 0, pady = 5, sticky = 'ns')
+
+        # add data
+        contacts = []
+        contacts.append(('admin', 'admin', 'Yes'))
+        contacts.append(('user', 'user', 'No', '2 - 1'))
+        for contact in contacts:
+            self.tree.insert('', tk.END, values=contact)
+        
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def edit(self, parent):
+        account = self.tree.item(self.tree.focus())['values']
+        if account == '':
+            return
+
+        window_edit = Toplevel(self.master)
+        editGUI(window_edit, parent, self.services, account)
+        window_edit.mainloop()
+
+    def add(self, parent):
+        window_add = Toplevel(self.master)
+        editGUI(window_add, parent, self.services, None)
+        window_add.mainloop()
+
+    def delete(self):
+        pass
+
+    def on_closing(self):
+        self.master.destroy()
+        self.parent.focus()
+        self.parent.grab_set()
+
+class editGUI:
+    def __init__(self, master, parent, services, account):
+        self.services = services
+        self.master = master
+        if account is not None:
+            self.master.title("Edit Account")
+        else:
+            self.master.title("Add Account")
+        # self.master.resizable(0, 0)
+        self.master.focus()
+        self.master.grab_set()
+        self.master['padx'] = 10
+        self.master['pady'] = 10
+
+        self.parent = parent
+
+        self.master.columnconfigure(0, weight=1)
+        self.master.columnconfigure(1, weight=1)
+        self.master.columnconfigure(2, weight=1)
+
+        self.lbl_user = Label(self.master, text = 'Username')
+        self.lbl_user.grid(row = 0, column = 0, sticky = W)
+
+        self.txt_user = Entry(self.master)
+        self.txt_user.focus()
+        self.txt_user.grid(row = 1, column = 0, columnspan = 3, sticky = EW, padx = 0)
+
+        self.lbl_pass = Label(self.master, text = 'Password')
+        self.lbl_pass.grid(row = 2, column = 0, sticky = W)
+
+        self.txt_pass = Entry(self.master)
+        self.txt_pass.grid(row = 3, column = 0, columnspan = 3, sticky = EW, padx = 0)
+
+        self.isCheck = tk.IntVar()
+        self.isAdmin = tk.Checkbutton(self.master, text = 'Is admin', variable = self.isCheck, onvalue = 1, offvalue = 0)
+        self.isAdmin.grid(row = 4, column = 0, sticky = W)
+        # De lay gia tri checkbox:
+        # self.isCheck.get() == 1   #1: la admin
+
+        self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
+        self.btn_cancel.grid(row = 6, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
+
+        if account is not None:
+            self.txt_user.insert(-1, account[0])
+            self.txt_pass.insert(-1, account[1])
+            if account[2] == 'Yes':
+                self.isAdmin.select()
+
+            self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
+            self.btn_change.grid(row = 6, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+        else:
+            self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
+            self.btn_add.grid(row = 6, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+
+        col_count, row_count = self.master.grid_size()
+        for col in range(col_count):
+            self.master.grid_columnconfigure(col, minsize = 73)
+        for row in range(row_count):
+            self.master.grid_rowconfigure(row, minsize = 15)
+
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+    def on_closing(self):
+        self.master.destroy()
+        self.parent.focus()
+        self.parent.grab_set()
+
+    def change(self):
+        pass
+
+    def add(self):
+        pass
+
+    def cancel(self):
+        self.on_closing()
 
 
 window_client = Tk()
 ClientGUI(window_client)
-center(window_client)
+window_client.eval('tk::PlaceWindow . center')
 window_client.mainloop()
