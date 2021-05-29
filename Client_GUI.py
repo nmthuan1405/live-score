@@ -770,7 +770,7 @@ class detailGUI:
         self.details = details
         self.details[match] = None
 
-        self.lbl_ID = Label(self.master, font=(None, 12))
+        self.lbl_ID = Label(self.master)
         self.lbl_ID.config(text = match)
 
         self.lbl_time = Label(self.master, font=(None, 12))
@@ -785,18 +785,33 @@ class detailGUI:
             self.btn_addEvent = Button(self.master, text = "Add event", width = 10, height = 1, command = partial(self.addEvent, match, self.master))
             self.btn_addEvent.place(x = 10, y = 0)
 
+            self.btn_editEvent = Button(self.master, text = "Edit event", width = 10, height = 1, command = partial(self.editEvent, match, self.master))
+            self.btn_editEvent.place(x = 110, y = 0)
+
+            self.btn_deleteEvent = Button(self.master, text = "Delete event", width = 10, height = 1, command = self.deleteEvent)
+            self.btn_deleteEvent.place(x = 210, y = 0)
+
+            self.isCheck = tk.IntVar()
+            self.checkbox = tk.Checkbutton(self.master, text = 'Show all event', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+            self.checkbox.select()
+            self.checkbox.place(x = 310, y = 0)
+
             self.lbl_ID.place(x = 10, y = 30)
             self.lbl_time.place( x = 600, y = 30)
             self.master.update()
             self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 60)
+            self.master.update()
             self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 60)
+            self.master.update()
             self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 60)
         else:
             self.lbl_ID.place(x = 10, y = 0)
             self.lbl_time.place( x = 600, y = 0)
             self.master.update()
             self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 30)
+            self.master.update()
             self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 30)
+            self.master.update()
             self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 30)
 
         # columns
@@ -884,16 +899,40 @@ class detailGUI:
 
     def addEvent(self, match, parent):
         window_addEvent = Toplevel(self.master)
-        addEventGUI(window_addEvent, parent, self.services, match)
+        addEventGUI(window_addEvent, parent, self.services, match, None)
         center(window_addEvent)
         window_addEvent.mainloop()
 
+    def editEvent(self, match, parent):
+        event = self.tree.item(self.tree.focus())['values']
+        if event == '':
+            showwarning("Warning", "Choose an event to edit.", parent = self.master)
+            return
+
+        window_editEvent = Toplevel(self.master)
+        addEventGUI(window_editEvent, parent, self.services, match, '3')   # event[6] la loai event
+        center(window_editEvent)
+        window_editEvent.mainloop()
+
+    def deleteEvent(self):
+        pass
+
+    def checker(self):
+        pass
+        # if self.isCheck.get() == 0:
+            
+        # if self.isCheck.get() == 1:
+
+
 class addEventGUI:
-    def __init__(self, master, parent, services, match):
+    def __init__(self, master, parent, services, match, event):
         windowsGlo.append(master)
         self.services = services
         self.master = master
-        self.master.title("Add event")
+        if event is None:
+            self.master.title("Add event")
+        else:
+            self.master.title("Edit event")
         # self.master.resizable(0, 0)
         self.master.focus()
         self.master.grab_set()
@@ -906,60 +945,32 @@ class addEventGUI:
         self.master.columnconfigure(2, weight=1)
 
         self.lbl_event = Label(self.master, text = 'Choose event')
-        self.lbl_event.grid(column = 0, row = 0, sticky = W)
+        self.lbl_event.grid(column = 0, row = 3, sticky = W)
 
         self.eventTypes = ('Goal', 'Yellow card', 'Red card', 'Half-time break ', 'Stoppage time')
         self.selected_eventType = tk.StringVar()
         self.cbb_eventType = ttk.Combobox(self.master, textvariable = self.selected_eventType)
         self.cbb_eventType['values'] = self.eventTypes
-        self.cbb_eventType.current(0)
+        if event is None:
+            self.cbb_eventType.current(0)
+        else:
+            self.cbb_eventType.current(int(event) - 1)
         self.cbb_eventType['state'] = 'readonly'  # normal
-        self.cbb_eventType.grid(column = 0, row = 1, columnspan = 3, sticky = EW)
+        self.cbb_eventType.grid(column = 0, row = 4, columnspan = 3, sticky = EW)
 
         def eventTypeChanged(event):
-            if(self.cbb_eventType.get() == self.eventTypes[0]):
-                self.lbl_team.grid()
-                self.cbb_team.grid()
+            if(self.cbb_eventType.get() == self.eventTypes[0] or self.cbb_eventType.get() == self.eventTypes[1] or self.cbb_eventType.get() == self.eventTypes[2]):
+                self.lbl_team.grid(column = 0, row = 5, sticky = W)
+                self.cbb_team.grid(column = 0, row = 6, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
-                self.lbl_player.grid()
-                self.txt_player.grid()
-
-                self.lbl_duration.grid_remove()
-                self.spinDur.grid_remove()
-                self.lbl_min.grid_remove()
-                
-                self.lbl_time.grid()
-                self.txt_time.grid()
-
-            if(self.cbb_eventType.get() == self.eventTypes[1]):
-                self.lbl_team.grid()
-                self.cbb_team.grid()
-
-                self.lbl_player.grid()
-                self.txt_player.grid()
+                self.lbl_player.grid(column = 0, row = 7, sticky = W)
+                self.txt_player.grid(column = 0, row = 8, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
                 self.lbl_duration.grid_remove()
                 self.spinDur.grid_remove()
                 self.lbl_min.grid_remove()
-                
-                self.lbl_time.grid()
-                self.txt_time.grid()
 
-            if(self.cbb_eventType.get() == self.eventTypes[2]):
-                self.lbl_team.grid()
-                self.cbb_team.grid()
-
-                self.lbl_player.grid()
-                self.txt_player.grid()
-
-                self.lbl_duration.grid_remove()
-                self.spinDur.grid_remove()
-                self.lbl_min.grid_remove()
-                
-                self.lbl_time.grid()
-                self.txt_time.grid()
-
-            if(self.cbb_eventType.get() == self.eventTypes[3]):
+            if(self.cbb_eventType.get() == self.eventTypes[3] or self.cbb_eventType.get() == self.eventTypes[4]):
                 self.lbl_team.grid_remove()
                 self.cbb_team.grid_remove()
 
@@ -969,35 +980,17 @@ class addEventGUI:
                 self.lbl_duration.grid(column = 0, row = 6, sticky = W)
                 self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
                 self.lbl_min.grid(row = 7, column = 1, sticky = W)
-                
-                self.lbl_time.grid()
-                self.txt_time.grid()
-
-            if(self.cbb_eventType.get() == self.eventTypes[4]):
-                self.lbl_team.grid_remove()
-                self.cbb_team.grid_remove()
-
-                self.lbl_player.grid_remove()
-                self.txt_player.grid_remove()
-
-                self.lbl_duration.grid(column = 0, row = 6, sticky = W)
-                self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
-                self.lbl_min.grid(row = 7, column = 1, sticky = W)
-                
-                self.lbl_time.grid()
-                self.txt_time.grid()
         
         self.cbb_eventType.bind('<<ComboboxSelected>>', eventTypeChanged)
 
         self.lbl_ID = Label(self.master, text = 'Event ID')
-        self.lbl_ID.grid(column = 0, row = 3, sticky = W)
+        self.lbl_ID.grid(column = 0, row = 0, sticky = W)
 
         self.txt_ID = Entry(self.master)
         self.txt_ID.config(state = 'readonly')
-        self.txt_ID.grid(column = 0, row = 4, columnspan = 3, sticky = EW, padx = 0)
+        self.txt_ID.grid(column = 0, row = 1, columnspan = 3, sticky = EW, padx = 0)
 
         self.lbl_team = Label(self.master, text = 'Team')
-        self.lbl_team.grid(column = 0, row = 5, sticky = W)
 
         self.teams = (match[2], match[4])
         self.selected_team = tk.StringVar()
@@ -1005,13 +998,10 @@ class addEventGUI:
         self.cbb_team['values'] = self.teams
         self.cbb_team.current(0)
         self.cbb_team['state'] = 'readonly'  # normal
-        self.cbb_team.grid(column = 0, row = 6, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
         self.lbl_player = Label(self.master, text = 'Player')
-        self.lbl_player.grid(column = 0, row = 7, sticky = W)
 
         self.txt_player = Entry(self.master)
-        self.txt_player.grid(column = 0, row = 8, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
         self.lbl_time = Label(self.master, text = 'Time')
         self.lbl_time.grid(column = 0, row = 9, sticky = W)
@@ -1034,11 +1024,27 @@ class addEventGUI:
 
         self.lbl_min = Label(self.master, text = 'minutes')
 
-        self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
-        self.btn_add.grid(row = 13, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+        if event is None:
+            self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
+            self.btn_add.grid(row = 13, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+        else:
+            self.btn_change = Button(self.master, text="Edit", command = self.change, width = 8)
+            self.btn_change.grid(row = 13, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
 
         self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
         self.btn_cancel.grid(row = 13, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
+
+        if event is not None and (event == '1' or event == '2' or event == '3'):
+            self.lbl_team.grid(column = 0, row = 5, sticky = W)
+            self.cbb_team.grid(column = 0, row = 6, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+            self.lbl_player.grid(column = 0, row = 7, sticky = W)
+            self.txt_player.grid(column = 0, row = 8, columnspan = 3, sticky = EW, padx = 0, pady = 0)
+
+        elif event is not None:   #event == '4' or event == '5':
+            self.lbl_duration.grid(column = 0, row = 6, sticky = W)
+            self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
+            self.lbl_min.grid(row = 7, column = 1, sticky = W)
 
         col_count, row_count = self.master.grid_size()
         for col in range(col_count):
@@ -1057,88 +1063,11 @@ class addEventGUI:
 
     def add(self):
         pass
+    def change(self):
+        pass
     def cancel(self):
         self.master.destroy()
         windowsGlo.remove(self.master)
-
-# class addOthersGUI:
-#     def __init__(self, master, parent, services, match):
-#         windowsGlo.append(master)
-#         self.services = services
-#         self.master = master
-#         self.master.title("Add event")
-#         # self.master.resizable(0, 0)
-#         self.master.focus()
-#         self.master.grab_set()
-#         self.master['padx'] = 10
-#         self.master['pady'] = 10
-#         self.parent = parent
-
-#         self.master.columnconfigure(0, weight=1)
-#         self.master.columnconfigure(1, weight=1)
-#         self.master.columnconfigure(2, weight=1)
-
-#         self.lbl_event = Label(self.master, text = 'Event')
-#         self.lbl_event.grid(column = 0, row = 0, sticky = W)
-
-#         self.events = ('Half-time break ', 'Stoppage time')
-#         self.selected_event = tk.StringVar()
-#         self.cbb_event = ttk.Combobox(self.master, textvariable = self.selected_event)
-#         self.cbb_event['values'] = self.events
-#         self.cbb_event.current(0)
-#         self.cbb_event['state'] = 'readonly'  # normal
-#         self.cbb_event.grid(column = 0, row = 1, columnspan = 3, sticky = EW, padx = 0, pady = 0)
-
-#         self.lbl_time = Label(self.master, text = 'Time')
-#         self.lbl_time.grid(column = 0, row = 2, sticky = W)
-
-#         self.isCheck = tk.IntVar()
-#         self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
-#         self.checkbox.select()
-#         self.checkbox.place( x = 35, y = 42)
-
-#         self.txt_time = Entry(self.master)
-#         self.txt_time.insert(-1, 'now')
-#         self.txt_time.config(state = 'readonly')
-#         self.txt_time.grid(column = 0, row = 3, columnspan = 3, sticky = EW, padx = 0, pady = 0)
-
-#         self.lbl_duration = Label(self.master, text = 'Duration')
-#         self.lbl_duration.grid(column = 0, row = 4, sticky = W)
-
-#         self.currDur = tk.IntVar(value = 15)
-#         self.spinDur = ttk.Spinbox(self.master, width = 8, from_=0, to=30, textvariable=self.currDur, wrap=True)
-#         self.spinDur.grid(row = 5, column = 0, columnspan = 1, sticky = W)
-
-#         self.lbl_min = Label(self.master, text = 'minutes')
-#         self.lbl_min.grid(row = 5, column = 1, sticky = W)
-        
-#         self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
-#         self.btn_add.grid(row = 7, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
-
-#         self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
-#         self.btn_cancel.grid(row = 7, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
-
-#         col_count, row_count = self.master.grid_size()
-#         for col in range(col_count):
-#             self.master.grid_columnconfigure(col, minsize = 70)
-#         for row in range(row_count):
-#             self.master.grid_rowconfigure(row, minsize = 20)
-    
-#     def checker(self):
-#         if self.isCheck.get() == 0:
-#             self.txt_time.config(state = 'normal')
-#             self.txt_time.delete(0, END)
-#         if self.isCheck.get() == 1:
-#             self.txt_time.delete(0, END)
-#             self.txt_time.insert(-1, 'now')
-#             self.txt_time.config(state = 'readonly')
-
-#     def add(self):
-#         pass
-
-#     def cancel(self):
-#         self.master.destroy()
-#         windowsGlo.remove(self.master)
 
 
 window_client = Tk()
