@@ -762,18 +762,18 @@ class detailGUI:
             self.btn_addEvent.place(x = 10, y = 0)
 
             self.lbl_ID.place(x = 10, y = 30)
-            self.lbl_time.place( x = 50, y = 30)
+            self.lbl_time.place( x = 600, y = 30)
+            self.master.update()
+            self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 60)
+            self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 60)
+            self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 60)
+        else:
+            self.lbl_ID.place(x = 10, y = 0)
+            self.lbl_time.place( x = 600, y = 0)
             self.master.update()
             self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 30)
             self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 30)
             self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 30)
-        else:
-            self.lbl_ID.place(x = 10, y = 0)
-            self.lbl_time.place( x = 50, y = 0)
-            self.master.update()
-            self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 0)
-            self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 0)
-            self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 0)
 
         # columns
         columns = ('#1', '#2', '#3', '#4', '#5', '#6')
@@ -795,16 +795,16 @@ class detailGUI:
         self.tree.heading('#5', text='Event')
         self.tree.heading('#6', text='Team 2 player')
 
-        if type == 0:
-            self.tree.grid(row = 1, column = 0, padx = 0, pady = 5, columnspan = 5, sticky='nsew')
+        if self.services.isAdmin:
+            self.tree.grid(row = 3, column = 0, padx = 0, pady = 5, columnspan = 5, sticky='nsew')
         else:
             self.tree.grid(row = 2, column = 0, padx = 0, pady = 5, columnspan = 5, sticky='nsew')
 
         # add a scrollbar
         self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
         self.tree.configure(yscroll = self.scrollbar.set)
-        if type == 0:
-            self.scrollbar.grid(row = 1, column = 5, padx = 0, pady = 5, sticky = 'ns')
+        if self.services.isAdmin:
+            self.scrollbar.grid(row = 3, column = 5, padx = 0, pady = 5, sticky = 'ns')
         else:
             self.scrollbar.grid(row = 2, column = 5, padx = 0, pady = 5, sticky = 'ns')
 
