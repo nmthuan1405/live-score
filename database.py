@@ -88,10 +88,10 @@ class Database:
     def insertDetail(self, match, id, code, time, team, player):
         return self.command('update', 'INSERT INTO detail VALUES (?, ?, ?, ?, ?, ?)', (match, id, time, code, team, player))
 
-    def editDetail(self,match, id, code, time, team, player):
-        return self.command('update', "UPDATE detail SET time = ?, type = ?, team = ?, player = ? WHERE id = ?", (time, code, team, player, id))
+    def editDetail(self, id, code, time, team, player):
+        return self.command('update', "UPDATE detail SET time = ?, code = ?, team = ?, player = ? WHERE id = ?", (time, code, team, player, id))
 
-    def delDetail(self, match, id):
+    def delDetail(self, id):
         return self.command('update', "DELETE FROM detail WHERE id = ?", (id,))
 
     def getHT(self, match):

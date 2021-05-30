@@ -261,19 +261,19 @@ def calcTime(startTime, ht_start, ht_len, ot):
         return 'FT', time - ht_len
 
 def eventCodeToName(code):
-    if code == '1':
-        return 'Score'
-    elif code == '2':
+    if code == 1:
+        return 'Goal'
+    elif code == 2:
         return 'Yellow card'
-    elif code == '3':
+    elif code == 3:
         return 'Red card'
-    elif code == '4':
+    elif code == 4:
         return 'Half-time break'
-    elif code == '5':
+    elif code == 5:
         return 'Stoppage time'
 
 def eventNameToCode(name):
-    if name == 'Score':
+    if name == 'Goal':
         return '1'
     elif name == 'Yellow card':
         return '2'

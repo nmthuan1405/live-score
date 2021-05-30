@@ -273,7 +273,7 @@ class userGUI:
         if self.isCheck.get() == 1:
             self.txt_date.config(state = 'disabled')
 
-    def schedule(self):
+    def schedule(self, check = True):
         if self.isCheck.get() == 1:
             matches_tuple = self.req.command('listAll')
         else:
@@ -285,7 +285,6 @@ class userGUI:
                 haveDetail = element[0] in [*self.details]
                 if haveDetail:
                     details = self.req.command('getDls', element[0])
-                    self.details[element[0]] = [element, details]
 
                 if element[6] == 1: 
                     time = 'FT'
@@ -317,7 +316,7 @@ class userGUI:
                             for detail in details:
                                 if detail[2] <= timeInt:
                                     if detail[3] == 1:
-                                        score[detail[5]] += 1
+                                        score[detail[4]] += 1
                                 else:
                                     break
                         else:
@@ -333,6 +332,8 @@ class userGUI:
                     else:
                         score = '? - ?'
 
+                if haveDetail:
+                    self.details[element[0]] = [list(element)[0:4] + [score, timeInt], details]
                 matches.append([element[0], time, element[2], score, element[3]])
 
 
@@ -354,7 +355,8 @@ class userGUI:
                 self.tree.selection_set(id)   
                 self.tree.focus(id)
 
-        self.master.after(timeout, self.schedule)
+        if check:
+            self.master.after(timeout, self.schedule)
 
     def detail(self):
         match = self.tree.item(self.tree.focus())['values']
@@ -435,10 +437,10 @@ class detailGUI:
         self.lbl_team2 = Label(self.master, font=(None, 14))
 
         if self.services.isAdmin:
-            self.btn_addEvent = Button(self.master, text = "Add event", width = 10, height = 1, command = partial(self.addEvent, match, self.master))
+            self.btn_addEvent = Button(self.master, text = "Add event", width = 10, height = 1, command =self.addEvent)
             self.btn_addEvent.place(x = 10, y = 0)
 
-            self.btn_editEvent = Button(self.master, text = "Edit event", width = 10, height = 1, command = partial(self.editEvent, match, self.master))
+            self.btn_editEvent = Button(self.master, text = "Edit event", width = 10, height = 1, command = self.editEvent)
             self.btn_editEvent.place(x = 110, y = 0)
 
             self.btn_deleteEvent = Button(self.master, text = "Delete event", width = 10, height = 1, command = self.deleteEvent)
@@ -468,24 +470,26 @@ class detailGUI:
             self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 30)
 
         # columns
-        columns = ('#1', '#2', '#3', '#4', '#5', '#6')
+        columns = ('#1', '#2', '#3', '#4', '#5', '#6', '#7')
         self.tree = ttk.Treeview(self.master, columns = columns, show = 'headings', height = 20)
 
         #config column width
-        self.tree.column("#1", anchor = 'center', minwidth = 50, width = 60)
-        self.tree.column("#2", anchor = 'center', minwidth = 50, width = 180)
-        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 120)
-        self.tree.column("#4", anchor = 'center', minwidth = 50, width = 70)
-        self.tree.column("#5", anchor = 'center', minwidth = 50, width = 120)
-        self.tree.column("#6", anchor = 'center', minwidth = 50, width = 180)
+        self.tree.column("#1", anchor = 'center', minwidth = 0, width = 0)
+        self.tree.column("#2", anchor = 'center', minwidth = 50, width = 60)
+        self.tree.column("#3", anchor = 'center', minwidth = 50, width = 180)
+        self.tree.column("#4", anchor = 'center', minwidth = 50, width = 120)
+        self.tree.column("#5", anchor = 'center', minwidth = 50, width = 70)
+        self.tree.column("#6", anchor = 'center', minwidth = 50, width = 120)
+        self.tree.column("#7", anchor = 'center', minwidth = 50, width = 180)
 
         # define headings
-        self.tree.heading('#1', text='Time')
-        self.tree.heading('#2', text='Team 1 player')
-        self.tree.heading('#3', text='Event')
-        self.tree.heading('#4', text='Score')
-        self.tree.heading('#5', text='Event')
-        self.tree.heading('#6', text='Team 2 player')
+        self.tree.heading('#1', text='ID')
+        self.tree.heading('#2', text='Time')
+        self.tree.heading('#3', text='Team 1 player')
+        self.tree.heading('#4', text='Event')
+        self.tree.heading('#5', text='Score')
+        self.tree.heading('#6', text='Event')
+        self.tree.heading('#7', text='Team 2 player')
 
         if self.services.isAdmin:
             self.tree.grid(row = 3, column = 0, padx = 0, pady = 5, columnspan = 5, sticky='nsew')
@@ -514,16 +518,44 @@ class detailGUI:
     def schedule(self):
         if self.details[self.match] is not None:
             match, details = self.details[self.match]
-    
+            self.lbl_ID.config(text = match[0])
+            self.lbl_time.config(text = match[1])
             self.lbl_team1.config(text = match[2])
             self.lbl_team2.config(text = match[3])
+            self.lbl_score.config(text = match[4])
 
+
+            rows = []
+            score = [0, 0]
+            for detail in self.details[self.match][1]:
+                id = detail[1]
+                time = str(detail[2]) + '\''
+                event = client.eventCodeToName(detail[3])
+                player = detail[5]
+                
+                if detail[3] == 1:
+                    score[detail[4]] += 1
+                
+                if detail[3] != 4 and detail[3] != 5:
+                    if detail[4] == 0:
+                        player1, event1 = player, event
+                        player2, event2 = '', ''
+                    else:
+                        player2, event2 = player, event
+                        player1, event1 = '', ''
+                else:
+                    event1 = event2 = event
+                    player1 = player2 = ''
+
+                scoreDisp = str(score[0]) + ' - ' + str(score[1])
+                rows.append([id, time, player1, event1, scoreDisp, event2, player2])
+                
             choosen = self.tree.item(self.tree.focus())['values']
             for row in self.tree.get_children():
                 self.tree.delete(row)
 
-            for detail in details:
-                self.tree.insert('', tk.END, values = detail[2:5])
+            for row in rows:
+                self.tree.insert('', tk.END, values = row)
 
             if choosen != '':
                 id = None
@@ -536,9 +568,7 @@ class detailGUI:
                     self.tree.selection_set(id)   
                     self.tree.focus(id)
 
-            #score = str(self.score[0]) + ' - ' + str(self.score[1])
-            #self.lbl_score.config(text = score)
-        
+            
         self.master.after(timeout, self.schedule)
 
     def on_closing(self):
@@ -548,23 +578,28 @@ class detailGUI:
         self.parent.focus()
         self.parent.grab_set()
 
-    def addEvent(self, match, parent):
+    def addEvent(self):
         window_addEvent = Toplevel(self.master)
-        addEventGUI(window_addEvent, parent, self.services, self.req, self.details, None)
+        addEventGUI(window_addEvent, self.master, self.services, self.req, self.details[self.match], None)
         window_addEvent.mainloop()
 
-    def editEvent(self, match, parent):
+    def editEvent(self):
         event = self.tree.item(self.tree.focus())['values']
         if event == '':
             showwarning("Warning", "Choose an event to edit.", parent = self.master)
             return
 
         window_editEvent = Toplevel(self.master)
-        addEventGUI(window_editEvent, parent, self.services, match, '3')   # event[6] la loai event
+        addEventGUI(window_editEvent, self.master, self.services, self.req, self.details[self.match], event[0])
         window_editEvent.mainloop()
 
     def deleteEvent(self):
-        pass
+        event = self.tree.item(self.tree.focus())['values']
+        if event == '':
+            return
+
+        if not self.req.command('delDetail', event[0]):
+            showerror('Error', 'Unable to delete match')  
 
     def checker(self):
         pass
@@ -604,8 +639,7 @@ class addEventGUI:
         self.cbb_eventType['values'] = self.eventTypes
         if event is None:
             self.cbb_eventType.current(0)
-        else:
-            self.cbb_eventType.current(int(event) - 1)
+
         self.cbb_eventType['state'] = 'readonly'  # normal
         self.cbb_eventType.grid(column = 0, row = 4, columnspan = 3, sticky = EW)
 
@@ -638,13 +672,16 @@ class addEventGUI:
         self.lbl_ID.grid(column = 0, row = 0, sticky = W)
 
         self.txt_ID = Entry(self.master)
-        self.txt_ID.insert(-1, uuid.uuid4().hex)
+        if event is None:
+            self.txt_ID.insert(-1, uuid.uuid4().hex)
+        else:
+            self.txt_ID.insert(-1, event)
         self.txt_ID.config(state = 'readonly')
         self.txt_ID.grid(column = 0, row = 1, columnspan = 3, sticky = EW, padx = 0)
 
         self.lbl_team = Label(self.master, text = 'Team')
 
-        self.teams = (details[0][2], details[0][3])
+        self.teams = [details[0][2], details[0][3]]
         self.selected_team = tk.StringVar()
         self.cbb_team = ttk.Combobox(self.master, textvariable = self.selected_team)
         self.cbb_team['values'] = self.teams
@@ -665,15 +702,18 @@ class addEventGUI:
         self.lbl_time = Label(self.master, text = 'Time')
         self.lbl_time.grid(column = 0, row = 9, sticky = W)
 
-        self.isCheck = tk.IntVar()
-        self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
-        self.checkbox.select()
-        self.checkbox.place(x = 35, y = 188)
 
         self.txt_time = Entry(self.master)
-        self.txt_time.insert(-1, 'now')
-        self.txt_time.config(state = 'disabled')
-        self.txt_time.config(state = 'readonly')
+        if event is None:
+            self.isCheck = tk.IntVar()
+            self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+            self.checkbox.select()
+            self.checkbox.place(x = 35, y = 188)
+
+            self.txt_time.insert(-1, 'now')
+            self.txt_time.config(state = 'disabled')
+            self.txt_time.config(state = 'readonly')
+        
         self.txt_time.grid(column = 0, row = 10, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
         self.lbl_duration = Label(self.master, text = 'Duration')
@@ -711,6 +751,30 @@ class addEventGUI:
         for row in range(row_count):
             self.master.grid_rowconfigure(row, minsize = 21)
 
+        self.master.update_idletasks()
+        if event is not None:
+            data = None
+            for detail in details[1]:
+                if detail[1] == event:
+                    data = detail
+                    break
+
+            if data is None:
+                self.cancel()
+                showerror('Error', 'Unable to find this event')
+                return
+
+            self.cbb_eventType.current(data[3] - 1)
+            eventTypeChanged(None)
+
+            self.txt_time.insert(-1, data[2])
+            if data[3] == 4 or data[3] == 5:
+                self.spinDur.insert(-1, data[4])
+            else:
+                self.cbb_team.current(data[4])
+                self.txt_player.insert(-1, data[5])
+                
+
     def checker(self):
         if self.isCheck.get() == 0:
             self.txt_time.config(state = 'normal')
@@ -720,25 +784,53 @@ class addEventGUI:
             self.txt_time.insert(-1, 'now')
             self.txt_time.config(state = 'readonly')
 
-    def add(self):
+    def checkData(self, id, code, time, team, player):
+        if (not time.isdigit()) or int(time) < 0:
+            return False
+        if code == '4' or code == '5':
+            for detail in self.details[1]:
+                if detail[3] == code and detail[1] != id:
+                    return False
+            if (not team.isdigit()) or int(team) < 0:
+                return False
+        else:
+            if player == '':
+                return False
+        return True
+
+    def getData(self):
         id = self.txt_ID.get()
         time = self.txt_time.get()
         if time == 'now':
-            time = self.details[0][1]
+            time = str(self.details[0][5])
             
         code = client.eventNameToCode(self.cbb_eventType.get())
 
-        if code == '5' or code == '5':
+        if code == '4' or code == '5':
             team = self.spinDur.get()
             player = ''
         else:
             team = self.teams.index(self.cbb_team.get())
             player = self.txt_player.get()
 
-        self.req.command('insertDetail', (id, self.details[0][0], code, team, player, time))
+        return id, code, time, team, player
+
+    def add(self):
+        id, code, time, team, player = self.getData()
+        if self.checkData(id, code, time, team, player):
+            self.req.command('insertDetail', (id, self.details[0][0], code, team, player, time))
+            self.cancel()
+        else:
+            showerror('Error', 'Invalid data')
         
     def change(self):
-        pass
+        id, code, time, team, player = self.getData()
+        if self.checkData(id, code, time, team, player):
+            self.req.command('editDetail', (id, code, team, player, time))
+            self.cancel()
+        else:
+            showerror('Error', 'Invalid data')
+
     def cancel(self):
         self.master.destroy()
 

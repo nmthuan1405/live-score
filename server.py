@@ -313,7 +313,7 @@ class Client:
     def c_delDetail(self):
         id = self.recv_str()
 
-        self.send_state(self.db.deDetail(id))
+        self.send_state(self.db.delDetail(id))
 
     def c_getHT(self):
         id = self.recv_str()
