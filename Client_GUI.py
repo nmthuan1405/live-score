@@ -244,7 +244,7 @@ class userGUI:
         self.tree.heading('#3', text='Team 1')
         self.tree.heading('#4', text='Score')
         self.tree.heading('#5', text='Team 2')
-
+        self.tree["displaycolumns"]=("1", "2", "3", "4")
         self.tree.grid(row = 2, column = 0, padx = 0, pady = 5, columnspan = 7, sticky='nsew')
 
         # add a scrollbar
@@ -391,9 +391,12 @@ class detailGUI:
         self.lbl_time.config(text = 'Loading...')
 
         self.lbl_currTime = Label(self.master, font=(None, 18))     # phut hien tai cua tran dau
-        self.lbl_team1 = Label(self.master, font=(None, 14))
-        self.lbl_score = Label(self.master, font=(None, 14))
-        self.lbl_team2 = Label(self.master, font=(None, 14))
+
+        self.lbl_team1 = Label(self.master, font=(None, 14), anchor = tk.CENTER, width = 27)
+
+        self.lbl_score = Label(self.master, font=(None, 14), anchor = tk.CENTER, width = 6)
+
+        self.lbl_team2 = Label(self.master, font=(None, 14), anchor = tk.CENTER, width = 27)
 
         if self.services.isAdmin:
             self.btn_addEvent = Button(self.master, text = "Add event", width = 10, height = 1, command =self.addEvent)
@@ -414,21 +417,21 @@ class detailGUI:
             self.lbl_time.place( x = 10, y = 50)
             self.lbl_currTime.place(x = 650, y = 30)
             self.master.update()
-            self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 60)
+            self.lbl_team1.place(x = 60, y = 65)
             self.master.update()
-            self.lbl_score.place(x = (60+180+120+(70)/2-10), y = 60)
+            self.lbl_score.place(x = 60+180+120, y = 65)
             self.master.update()
-            self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 60)
+            self.lbl_team2.place(x = 60+180+120+70, y = 65)
         else:
             self.lbl_ID.place(x = 10, y = 0)
             self.lbl_time.place( x = 10, y = 20)
             self.lbl_currTime.place(x = 600, y = 0)
             self.master.update()
-            self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 30)
+            self.lbl_team1.place(x = 60, y = 35)
             self.master.update()
-            self.lbl_score.place(x = (60+180+120+(70)/2-10), y = 30)
+            self.lbl_score.place(x = 60+180+120, y = 35)
             self.master.update()
-            self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 30)
+            self.lbl_team2.place(x = 60+180+120+70, y = 35)
 
         # columns
         columns = ('#1', '#2', '#3', '#4', '#5', '#6', '#7')
@@ -451,6 +454,7 @@ class detailGUI:
         self.tree.heading('#5', text='Score')
         self.tree.heading('#6', text='Event')
         self.tree.heading('#7', text='Team 2 player')
+        self.tree["displaycolumns"]=("1", "2", "3", "4", "5", "6")
 
         if self.services.isAdmin:
             self.tree.grid(row = 3, column = 0, padx = 0, pady = 5, columnspan = 5, sticky='nsew')
@@ -479,6 +483,7 @@ class detailGUI:
         # init
         self.services.update.addWindows(self.match)
         self.schedule()
+
 
     def schedule(self):
         details = self.services.update.details[self.match][1]
@@ -649,6 +654,16 @@ class addEventGUI:
         self.lbl_time.grid(column = 0, row = 9, sticky = W)
 
         self.txt_time = Entry(self.master)
+        if event is None:
+            self.isCheck = tk.IntVar()
+            self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
+            self.checkbox.select()
+            self.checkbox.place(x = 35, y = 196)
+
+            self.txt_time.insert(-1, 'now')
+            self.txt_time.config(state = 'disabled')
+            self.txt_time.config(state = 'readonly')
+        
         self.txt_time.grid(column = 0, row = 10, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
         self.lbl_duration = Label(self.master, text = 'Duration')
@@ -684,7 +699,7 @@ class addEventGUI:
         for col in range(col_count):
             self.master.grid_columnconfigure(col, minsize = 70)
         for row in range(row_count):
-            self.master.grid_rowconfigure(row, minsize = 21)
+            self.master.grid_rowconfigure(row, minsize = 22)
 
         self.master.update_idletasks()
 
