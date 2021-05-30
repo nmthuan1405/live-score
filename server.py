@@ -152,8 +152,8 @@ class Client:
                                 self.c_editMatch()
                             elif flag == 'delMatch':
                                 self.c_delMatch()
-                            elif flag == 'delDls':
-                                self.c_delDetails()
+                            elif flag == 'getDetail':
+                                self.c_getDetail()
                             elif flag == 'editDetail':
                                 self.c_editDetail()
                             elif flag == 'insertDetail':
@@ -287,9 +287,9 @@ class Client:
         match = self.recv_str()
         self.send_obj(self.db.getDetails(match))
 
-    def c_delDetails(self):
-        match = self.recv_str()
-        self.send_state(self.db.delDetails(match))
+    def c_getDetail(self):
+        id = self.recv_str()
+        self.send_obj(self.db.getDetail(id))
 
     def c_insertDetail(self):
         id = self.recv_str()

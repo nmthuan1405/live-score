@@ -4,6 +4,7 @@ import queue
 import threading
 import uuid
 from datetime import datetime
+import time as tm
 
 class Client:
     def __init__(self, serverAddr, port = 1234, delim = b'\x00'):
@@ -14,6 +15,9 @@ class Client:
 
         self.socket = None
         self.buff = b''
+
+        self.req = QueueServer(self)
+        self.update = UpdateInfo(self.req)
 
     def connect(self):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -130,10 +134,10 @@ class Client:
         self.send_str(match)
         return self.recv_obj()
 
-    def s_delDetails(self, match):
-        self.send_str('delDls')
-        self.send_str(match)
-        return self.recv_state()
+    def s_getDetail(self, id):
+        self.send_str('getDetail')
+        self.send_str(id)
+        return self.recv_obj()
 
     def s_editDetail(self, id, code, team, player, time):
         self.send_str('editDetail')
@@ -174,6 +178,7 @@ class Client:
         self.send_str(date)
         return self.recv_obj()
 
+
 class QueueServer():
     def __init__(self, services):
         self.services = services
@@ -198,8 +203,8 @@ class QueueServer():
                 res = self.services.s_getMatchID(arg)
             elif cmd == 'getDls':
                 res = self.services.s_getDetails(arg)
-            elif cmd == 'delDls':
-                res = self.services.s_delDetails(arg)
+            elif cmd == 'getDetail':
+                res = self.services.s_getDetail(arg)
             elif cmd == 'editDetail':
                 res = self.services.s_editDetail(arg[0], arg[1], arg[2], arg[3], arg[4])
             elif cmd == 'insertDetail':
@@ -229,6 +234,7 @@ class QueueServer():
             self.command('exit')
             self.client_thread.join()
             self.client_thread = None
+            self.result = {}
 
     def command(self, cmd, arg = ()):
         id = uuid.uuid4().hex
@@ -240,6 +246,135 @@ class QueueServer():
                     res = self.result[id]
                     self.result.pop(id)
                     return res
+
+class UpdateInfo:
+    def __init__(self, req):
+        self.req = req
+
+        self.details = {}
+        self.dateMatch = ''
+        self.thread = None
+        self.timeout = 1
+
+    def setTimeout(self, time):
+        self.timeout = time / 1000
+
+    def setDate(self, date):
+        self.dateMatch = str(date)
+
+    def addWindows(self, windows, full = True):
+        self.details[windows] = [full, None]
+
+    def removeWindows(self, windows):
+        self.details.pop(windows)
+
+    def start(self):
+        if self.thread is None:
+            self.thread = threading.Thread(target = self.updatingData)
+            self.thread.start()
+
+    def stop(self):
+        self.details.pop('main')
+        self.thread.join()
+
+        self.thread = None
+        self.details = {}
+        self.dateMatch = ''
+
+    def updatingData(self):
+        while True:
+            matches = []
+            check = [*self.details]
+            if 'main' in check:
+                check.remove('main')
+            else:
+                break
+
+            if self.dateMatch == '':
+                matches_tuple = self.req.command('listAll')
+            else:
+                matches_tuple = self.req.command('listAllDate', self.dateMatch)
+
+            if matches_tuple != []:
+                for element in matches_tuple:
+                    haveDetail = element[0] in check
+                    if haveDetail:
+                        details = self.req.command('getDls', element[0])
+
+                    if element[6] == 1: 
+                        time = 'FT'
+                        score = str(element[4]) + ' - ' + str(element[5])
+                    
+                    else:
+                        if haveDetail:
+                            ht_start, ht_len = 45, 0
+                            for detail in details:
+                                if detail[3] == 4:
+                                    ht_start = detail[2]
+                                    ht_len = detail[4]
+                                    break
+
+                        else:
+                            ht = self.req.command('getHT', element[0])
+                            if not ht:
+                                ht_start, ht_len = 45, 0
+                            else:
+                                ht_start, ht_len = ht[0]
+
+                        time, timeInt = calcTime(element[1], int(ht_start), int(ht_len), 0)
+                        if timeInt != -1:
+                            if haveDetail:
+                                rows = []
+                                score = [0, 0]
+                                for detail in details:
+                                    id = detail[1]
+                                    time = str(detail[2]) + '\''
+                                    event = eventCodeToName(detail[3])
+                                    player = detail[5]
+                                    
+                                    if detail[3] == 1:
+                                        score[detail[4]] += 1
+                                    
+                                    if detail[3] != 4 and detail[3] != 5:
+                                        if detail[4] == 0:
+                                            player1, event1 = player, event
+                                            player2, event2 = '', ''
+                                        else:
+                                            player2, event2 = player, event
+                                            player1, event1 = '', ''
+                                    else:
+                                        event1 = event2 = event
+                                        player1 = player2 = ''
+
+                                    scoreDisp = str(score[0]) + ' - ' + str(score[1])
+                                    rows.append([id, time, player1, event1, scoreDisp, event2, player2])
+                                
+                                # for detail in details:
+                                #     if detail[2] <= timeInt:
+                                #         if detail[3] == 1:
+                                #             score[detail[4]] += 1
+                                #     else:
+                                #         break
+                            else:
+                                goals = self.req.command('getGoal', element[0])
+                                score = [0, 0]
+                                if goals:
+                                    for goal in goals:
+                                        if goal[0] <= timeInt:
+                                            score[goal[1]] += 1
+                                        else:
+                                            break
+
+                            scoreDisp = str(score[0]) + ' - ' + str(score[1])
+                        else:
+                            scoreDisp = '? - ?'
+
+                    if haveDetail:
+                        self.details[element[0]] = [list(element)[0:4] + [scoreDisp, time], rows]
+                    matches.append([element[0], time, element[2], scoreDisp, element[3]])
+            
+            self.details['main'] = matches
+            tm.sleep(self.timeout)
 
 
 def calcTime(startTime, ht_start, ht_len, ot):

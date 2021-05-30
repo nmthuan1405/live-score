@@ -85,6 +85,9 @@ class Database:
     def getDetails(self, match):
         return self.command('query', "SELECT * FROM detail WHERE match = ? ORDER BY time", (match,))
 
+    def getDetail(self, id):
+        return self.command('query', "SELECT * FROM detail WHERE id = ?", (id,))
+
     def insertDetail(self, match, id, code, time, team, player):
         return self.command('update', 'INSERT INTO detail VALUES (?, ?, ?, ?, ?, ?)', (match, id, time, code, team, player))
 

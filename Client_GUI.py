@@ -14,7 +14,7 @@ import uuid
 import threading
 from datetime import datetime
 
-timeout = 5000
+timeout = 2000
 
 class ClientGUI:
     def __init__(self, master):
@@ -142,7 +142,13 @@ class ClientGUI:
         self.exit()
 
     def signUp(self):
-        check = self.services.s_auth(self.txt_User.get(), self.txt_Password.get(), 'signUp')
+        User = self.txt_User.get()
+        Pass = self.txt_Password.get()
+        if User == '' or Pass == '':
+            showerror('Error', 'Invalid value')
+            return
+
+        check = self.services.s_auth(User, Pass, 'signUp')
         if check:
             showinfo('Sucess', 'Sign up sucessfully', parent = self.master)
         else:
@@ -172,9 +178,6 @@ class userGUI:
         self.master = master
         self.parent = parent
         self.services = services
-
-        self.req = client.QueueServer(self.services)
-        self.details = {}
 
         self.parent.withdraw()
 
@@ -262,8 +265,13 @@ class userGUI:
             self.allDate.deselect()
         self.txt_date.bind('<<DateEntrySelected>>', dateChanged)
 
+        self.master.update_idletasks()
+
         # start init
-        self.req.start()
+        self.services.req.start()
+        self.services.update.addWindows('main')
+        self.services.update.setTimeout(timeout)
+        self.services.update.start()
         self.schedule()
 
     def checker(self):
@@ -272,91 +280,34 @@ class userGUI:
             # khi bo chon all date thi hien thi lai ds tran dau cua ngay trong txt_date
         if self.isCheck.get() == 1:
             self.txt_date.config(state = 'disabled')
-
-    def schedule(self, check = True):
-        if self.isCheck.get() == 1:
-            matches_tuple = self.req.command('listAll')
-        else:
-            matches_tuple = self.req.command('listAllDate', str(self.txt_date.get_date()))
-
-        matches = []
-        if matches_tuple != []:
-            for element in matches_tuple:
-                haveDetail = element[0] in [*self.details]
-                if haveDetail:
-                    details = self.req.command('getDls', element[0])
-
-                if element[6] == 1: 
-                    time = 'FT'
-                    score = str(element[4]) + ' - ' + str(element[5])
                 
-                else:
-                    if haveDetail:
-                        ht_start, ht_len = 45, 0
-                        for detail in details:
-                            if detail[3] == 4:
-                                ht_start = detail[2]
-                                ht_len = detail[4]
-                                break
 
-                    else:
-                        ht = self.req.command('getHT', element[0])
-                        if not ht:
-                            ht_start, ht_len = 45, 0
-                        else:
-                            ht_start, ht_len = ht[0]
-
+    def schedule(self):
+        matches = self.services.update.details['main']
+        if matches is not None:
+            if matches:
+                choosen = self.tree.item(self.tree.focus())['values']
+                for row in self.tree.get_children():
+                    self.tree.delete(row)
                     
-                    time, timeInt = client.calcTime(element[1], int(ht_start), int(ht_len), 0)
-                    
-                    if timeInt != -1:
-                        score = [0, 0]
+                for match in matches:
+                    self.tree.insert('', tk.END, values = match)
 
-                        if haveDetail:
-                            for detail in details:
-                                if detail[2] <= timeInt:
-                                    if detail[3] == 1:
-                                        score[detail[4]] += 1
-                                else:
-                                    break
-                        else:
-                            goals = self.req.command('getGoal', element[0])
-                            if goals:
-                                for goal in goals:
-                                    if goal[0] <= timeInt:
-                                        score[goal[1]] += 1
-                                    else:
-                                        break
+                if choosen != '':
+                    id = None
+                    for row in self.tree.get_children():
+                        if self.tree.item(row)['values'][0] == choosen[0]:
+                            id = row
+                            break
 
-                        score = str(score[0]) + ' - ' + str(score[1])
-                    else:
-                        score = '? - ?'
+                    if id is not None: 
+                        self.tree.selection_set(id)   
+                        self.tree.focus(id)
+            else:
+                showerror('Error', 'Unable to fetch data')
+                return
+        self.master.after(timeout, self.schedule)
 
-                if haveDetail:
-                    self.details[element[0]] = [list(element)[0:4] + [score, timeInt], details]
-                matches.append([element[0], time, element[2], score, element[3]])
-
-
-        choosen = self.tree.item(self.tree.focus())['values']
-        for row in self.tree.get_children():
-            self.tree.delete(row)
-            
-        for match in matches:
-            self.tree.insert('', tk.END, values = match)
-
-        if choosen != '':
-            id = None
-            for row in self.tree.get_children():
-                if self.tree.item(row)['values'][0] == choosen[0]:
-                    id = row
-                    break
-
-            if id is not None: 
-                self.tree.selection_set(id)   
-                self.tree.focus(id)
-
-        if check:
-            self.master.after(timeout, self.schedule)
 
     def detail(self):
         match = self.tree.item(self.tree.focus())['values']
@@ -365,7 +316,7 @@ class userGUI:
             return
 
         window_detail = Toplevel(self.master)
-        detailGUI(window_detail, self.master, self.services, self.req, self.details, match[0])
+        detailGUI(window_detail, self.master, self.services, match[0])
         window_detail.mainloop()
 
 
@@ -376,20 +327,21 @@ class userGUI:
             return
 
         window_edit = Toplevel(self.master)
-        addMatchGUI(window_edit, self.master, self.services, self.req, match[0])
+        addMatchGUI(window_edit, self.master, self.services, match[0])
         window_edit.mainloop()
 
     def addMatch(self):
         window_addMatch = Toplevel(self.master)
-        addMatchGUI(window_addMatch, self.master, self.services, self.req)
+        addMatchGUI(window_addMatch, self.master, self.services)
         window_addMatch.mainloop()
 
     def delete(self):
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
+            showwarning("Warning", "Choose a match to delete")
             return
 
-        if not self.req.command('delMatch', match[0]):
+        if not self.services.req.command('delMatch', match[0]):
             showerror('Error', 'Unable to delete match')        
 
     def editAccount(self, parent):
@@ -398,16 +350,20 @@ class userGUI:
         window_editAccount.mainloop()
 
     def signOut(self):
-        self.req.stop()
+        self.services.update.stop()
+        self.services.req.stop()
         self.services.s_signOut()
 
         self.master.destroy()
         self.parent.deiconify()
 
 class detailGUI:
-    def __init__(self, master, parent, services, req, details, match):
+    def __init__(self, master, parent, services, match):
         self.master = master
-        self.services = services
+        self.parent = parent
+
+        self.services = services 
+        self.match = match
 
         if self.services.isAdmin:
             self.master.title("Match details")
@@ -419,24 +375,15 @@ class detailGUI:
         self.master['padx'] = 10
         self.master['pady'] = 10
 
-        self.parent = parent
-        self.req = req
-        self.match = match
-        self.details = details
-        self.details[match] = None
-
         self.lbl_ID = Label(self.master)
         self.lbl_ID.config(text = match)
 
         self.lbl_time = Label(self.master)
-        self.lbl_time.config(text = match)
+        self.lbl_time.config(text = 'Loading...')
 
         self.lbl_currTime = Label(self.master, font=(None, 18))     # phut hien tai cua tran dau
-
         self.lbl_team1 = Label(self.master, font=(None, 14))
-
         self.lbl_score = Label(self.master, font=(None, 14))
-
         self.lbl_team2 = Label(self.master, font=(None, 14))
 
         if self.services.isAdmin:
@@ -518,66 +465,50 @@ class detailGUI:
 
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        self.master.update_idletasks()
+
+        # init
+        self.services.update.addWindows(self.match)
         self.schedule()
 
     def schedule(self):
-        if self.details[self.match] is not None:
-            match, details = self.details[self.match]
-            self.lbl_ID.config(text = match[0])
-            self.lbl_time.config(text = match[1])
-            self.lbl_team1.config(text = match[2])
-            self.lbl_team2.config(text = match[3])
-            self.lbl_score.config(text = match[4])
+        details = self.services.update.details[self.match]
+        if details is not None:
+            if details:
+                match, rows = details
+                self.lbl_ID.config(text = match[0])
+                self.lbl_time.config(text = match[1])
+                self.lbl_team1.config(text = match[2])
+                self.lbl_team2.config(text = match[3])
+                self.lbl_score.config(text = match[4])
+                self.lbl_currTime.config(text = match[5])
 
-
-            rows = []
-            score = [0, 0]
-            for detail in self.details[self.match][1]:
-                id = detail[1]
-                time = str(detail[2]) + '\''
-                event = client.eventCodeToName(detail[3])
-                player = detail[5]
-                
-                if detail[3] == 1:
-                    score[detail[4]] += 1
-                
-                if detail[3] != 4 and detail[3] != 5:
-                    if detail[4] == 0:
-                        player1, event1 = player, event
-                        player2, event2 = '', ''
-                    else:
-                        player2, event2 = player, event
-                        player1, event1 = '', ''
-                else:
-                    event1 = event2 = event
-                    player1 = player2 = ''
-
-                scoreDisp = str(score[0]) + ' - ' + str(score[1])
-                rows.append([id, time, player1, event1, scoreDisp, event2, player2])
-                
-            choosen = self.tree.item(self.tree.focus())['values']
-            for row in self.tree.get_children():
-                self.tree.delete(row)
-
-            for row in rows:
-                self.tree.insert('', tk.END, values = row)
-
-            if choosen != '':
-                id = None
+                choosen = self.tree.item(self.tree.focus())['values']
                 for row in self.tree.get_children():
-                    if self.tree.item(row)['values'][0] == choosen[0]:
-                        id = row
-                        break
+                    self.tree.delete(row)
 
-                if id is not None: 
-                    self.tree.selection_set(id)   
-                    self.tree.focus(id)
+                for row in rows:
+                    self.tree.insert('', tk.END, values = row)
 
-            
+                if choosen != '':
+                    id = None
+                    for row in self.tree.get_children():
+                        if self.tree.item(row)['values'][0] == choosen[0]:
+                            id = row
+                            break
+
+                    if id is not None: 
+                        self.tree.selection_set(id)   
+                        self.tree.focus(id)
+            else:
+                showerror('Error', 'Unable to fetch data')
+                self.on_closing()
+                return
+
         self.master.after(timeout, self.schedule)
 
     def on_closing(self):
-        self.details.pop(self.match)
+        self.services.update.removeWindows(self.match)
 
         self.master.destroy()
         self.parent.focus()
@@ -585,7 +516,7 @@ class detailGUI:
 
     def addEvent(self):
         window_addEvent = Toplevel(self.master)
-        addEventGUI(window_addEvent, self.master, self.services, self.req, self.details[self.match], None)
+        addEventGUI(window_addEvent, self.master, self.services, self.match, None)
         window_addEvent.mainloop()
 
     def editEvent(self):
@@ -595,7 +526,7 @@ class detailGUI:
             return
 
         window_editEvent = Toplevel(self.master)
-        addEventGUI(window_editEvent, self.master, self.services, self.req, self.details[self.match], event[0])
+        addEventGUI(window_editEvent, self.master, self.services, self.match, event[0])
         window_editEvent.mainloop()
 
     def deleteEvent(self):
@@ -608,17 +539,16 @@ class detailGUI:
 
     def checker(self):
         pass
-        # if self.isCheck.get() == 0:
-            
-        # if self.isCheck.get() == 1:
 
 
 class addEventGUI:
-    def __init__(self, master, parent, services, req, details, event):
+    def __init__(self, master, parent, services, match, event):
         self.services = services
-        self.req = req
+        self.match = match
+        self.event = event
+
         self.master = master
-        self.details = details
+        self.parent = parent
 
         if event is None:
             self.master.title("Add event")
@@ -629,7 +559,6 @@ class addEventGUI:
         self.master.grab_set()
         self.master['padx'] = 10
         self.master['pady'] = 10
-        self.parent = parent
 
         self.master.columnconfigure(0, weight=1)
         self.master.columnconfigure(1, weight=1)
@@ -685,8 +614,7 @@ class addEventGUI:
         self.txt_ID.grid(column = 0, row = 1, columnspan = 3, sticky = EW, padx = 0)
 
         self.lbl_team = Label(self.master, text = 'Team')
-
-        self.teams = [details[0][2], details[0][3]]
+        self.teams = self.services.update.details[self.match][0][2:4]
         self.selected_team = tk.StringVar()
         self.cbb_team = ttk.Combobox(self.master, textvariable = self.selected_team)
         self.cbb_team['values'] = self.teams
@@ -694,7 +622,6 @@ class addEventGUI:
         self.cbb_team['state'] = 'readonly'  # normal
 
         self.lbl_player = Label(self.master, text = 'Player')
-
         self.txt_player = Entry(self.master)
 
         if event is None:
@@ -707,18 +634,7 @@ class addEventGUI:
         self.lbl_time = Label(self.master, text = 'Time')
         self.lbl_time.grid(column = 0, row = 9, sticky = W)
 
-
         self.txt_time = Entry(self.master)
-        if event is None:
-            self.isCheck = tk.IntVar()
-            self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
-            self.checkbox.select()
-            self.checkbox.place(x = 35, y = 188)
-
-            self.txt_time.insert(-1, 'now')
-            self.txt_time.config(state = 'disabled')
-            self.txt_time.config(state = 'readonly')
-        
         self.txt_time.grid(column = 0, row = 10, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
         self.lbl_duration = Label(self.master, text = 'Duration')
@@ -757,29 +673,24 @@ class addEventGUI:
             self.master.grid_rowconfigure(row, minsize = 21)
 
         self.master.update_idletasks()
+
         if event is not None:
-            data = None
-            for detail in details[1]:
-                if detail[1] == event:
-                    data = detail
-                    break
+            data = self.services.req.command('getDetail', event)
 
-            if data is None:
-                self.cancel()
-                showerror('Error', 'Unable to find this event')
-                return
+            if data and len(data) == 1:
+                data = data[0]
 
-            self.cbb_eventType.current(data[3] - 1)
-            eventTypeChanged(None)
+                self.cbb_eventType.current(data[3] - 1)
+                eventTypeChanged(None)
 
-            self.txt_time.insert(-1, data[2])
-            if data[3] == 4 or data[3] == 5:
-                self.spinDur.insert(-1, data[4])
-            else:
-                self.cbb_team.current(data[4])
-                self.txt_player.insert(-1, data[5])
+                self.txt_time.insert(-1, data[2])
+                if data[3] == 4 or data[3] == 5:
+                    self.spinDur.delete(0, END)
+                    self.spinDur.insert(-1, data[4])
+                else:
+                    self.cbb_team.current(data[4])
+                    self.txt_player.insert(-1, data[5])
                 
-
     def checker(self):
         if self.isCheck.get() == 0:
             self.txt_time.config(state = 'normal')
@@ -806,9 +717,6 @@ class addEventGUI:
     def getData(self):
         id = self.txt_ID.get()
         time = self.txt_time.get()
-        if time == 'now':
-            time = str(self.details[0][5])
-            
         code = client.eventNameToCode(self.cbb_eventType.get())
 
         if code == '4' or code == '5':
@@ -823,16 +731,20 @@ class addEventGUI:
     def add(self):
         id, code, time, team, player = self.getData()
         if self.checkData(id, code, time, team, player):
-            self.req.command('insertDetail', (id, self.details[0][0], code, team, player, time))
-            self.cancel()
+            if self.services.req.command('insertDetail', (id, self.services.update.details[self.match][0][0], code, team, player, time)):
+                self.cancel()
+            else:
+                showerror('Error', 'Unable to add this event')
         else:
             showerror('Error', 'Invalid data')
         
     def change(self):
         id, code, time, team, player = self.getData()
         if self.checkData(id, code, time, team, player):
-            self.req.command('editDetail', (id, code, team, player, time))
-            self.cancel()
+            if self.services.req.command('editDetail', (id, code, team, player, time)):
+                self.cancel()
+            else:
+                showerror('Error', 'Unable to edit this event')
         else:
             showerror('Error', 'Invalid data')
 
@@ -840,9 +752,11 @@ class addEventGUI:
         self.master.destroy()
 
 class addMatchGUI:
-    def __init__(self, master, parent, services, req, match = None):
+    def __init__(self, master, parent, services, match = None):
         self.services = services
         self.master = master
+        self.parent = parent
+
         if match is None:
             self.master.title("Add match")
         else:
@@ -852,9 +766,6 @@ class addMatchGUI:
         self.master.grab_set()
         self.master['padx'] = 10
         self.master['pady'] = 10
-
-        self.parent = parent
-        self.req = req
 
         self.master.columnconfigure(0, weight=1)
         self.master.columnconfigure(1, weight=1)
@@ -928,8 +839,10 @@ class addMatchGUI:
 
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        self.master.update_idletasks()
+
         if match is not None:
-            data = self.req.command('getMatch', match)
+            data = self.services.req.command('getMatch', match)
             if data and len(data) == 1:
                 data = data[0]
 
@@ -957,42 +870,47 @@ class addMatchGUI:
             self.txt_ID.insert(-1, uuid.uuid4().hex)
             self.txt_ID.config(state = 'readonly')
 
-    def change(self):
+    def getData(self):
         id = self.txt_ID.get()
         team1 = self.txt_team1.get()
         team2 = self.txt_team2.get()
         hour = self.spinHour.get()
         min = self.spinMin.get()
 
+        return id, team1, team2, hour, min
 
-        if team1 == '' or team2 == '' or (not hour.isdigit()) or (not min.isdigit()) or int(hour) < 0 or int(hour) > 23 or int(min) < 0 or int(min) > 59:
-            showerror('Erorr', 'Invalid input')
-            return
+    def checkData(self, team1, team2, hour, min):
+        if team1 == '' or team2 == '':
+            return False 
+        if (not hour.isdigit()) or int(hour) < 0 or int(hour) > 23:
+            return False
+        if (not min.isdigit()) or int(min) < 0 or int(min) > 59:
+            return False
 
-        time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
-        if not self.req.command('editMatch', (id, team1, team2, time)):
-            showerror('Error', 'Unable to change match\'s information')
+        return True 
+
+    def change(self):
+        id, team1, team2, hour, min = self.getData()
+        if self.checkData(team1, team2, hour, min):
+            time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
+            if self.services.req.command('editMatch', (id, team1, team2, time)):
+                self.on_closing()
+            else:
+                showerror('Error', 'Unable to change match\'s information')
+        else:
+            showerror('Error', 'Invalid data')
 
     def add(self):
-        id = self.txt_ID.get()
-        team1 = self.txt_team1.get()
-        team2 = self.txt_team2.get()
-        hour = self.spinHour.get()
-        min = self.spinMin.get()
+        id, team1, team2, hour, min = self.getData()
+        if self.checkData(team1, team2, hour, min):
+            time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
+            if self.services.req.command('addMatch', (id, team1, team2, time)):
+                self.on_closing()
+            else:
+                showerror('Error', 'Unable to create a new match')
+        else:
+            showerror('Error', 'Invalid data')
 
-
-        if team1 == '' or team2 == '' or (not hour.isdigit()) or (not min.isdigit()) or int(hour) < 0 or int(hour) > 23 or int(min) < 0 or int(min) > 59:
-            showerror('Erorr', 'Invalid input')
-            return
-
-        time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
-        if not self.req.command('addMatch', (id, team1, team2, time)):
-            showerror('Error', 'Unable to create new match')
-
-        self.txt_ID.config(state = 'normal')
-        self.txt_ID.delete(0, END)
-        self.txt_ID.insert(-1, uuid.uuid4().hex)
-        self.txt_ID.config(state = 'readonly')
 
 class editAccountGUI:
     def __init__(self, master, parent, services):
