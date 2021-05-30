@@ -252,21 +252,18 @@ class UpdateInfo:
         self.req = req
 
         self.details = {}
-        self.dateMatch = ''
+        self.remove = []
         self.thread = None
         self.timeout = 1
 
     def setTimeout(self, time):
         self.timeout = time / 1000
 
-    def setDate(self, date):
-        self.dateMatch = str(date)
-
-    def addWindows(self, windows, full = True):
-        self.details[windows] = [full, None]
+    def addWindows(self, windows):
+        self.details[windows] = ['', None, None]
 
     def removeWindows(self, windows):
-        self.details.pop(windows)
+        self.remove.append(windows)
 
     def start(self):
         if self.thread is None:
@@ -281,119 +278,144 @@ class UpdateInfo:
         self.details = {}
         self.dateMatch = ''
 
+    def caculateHT(self, details):
+        ht_start, ht_len, ot = 45, 0, 0
+        for detail in details:
+            if detail[3] == 4:
+                ht_start = detail[2]
+                ht_len = detail[4]
+            if detail[3] == 5:
+                ot = detail[4]
+
+        return ht_start, ht_len, ot
+
+    def caculateMatch(self, match, details):
+        id, timeStamp, team1Name, team2Name, score1, score2, isDone = match
+
+        if isDone == 1: 
+            time = 'FT'
+            scoreDisp = str(score1) + ' - ' + str(score2)
+        else:
+            ht_start, ht_len, ot = self.caculateHT(details)
+            time, timeInt = self.calcTime(timeStamp, int(ht_start), int(ht_len), int(ot))
+
+            if timeInt != -1:
+                score = [0, 0]
+
+                for _match, _id, _time, _code, _team, _player in details:
+                    if _time > timeInt:
+                        break
+
+                    if _code == 1:
+                        score[_team] += 1
+
+                scoreDisp = str(score[0]) + ' - ' + str(score[1])
+            else:
+                scoreDisp = '? - ?'
+        
+        return time, timeInt, scoreDisp
+
+    def calcTime(self, startTime, ht_start, ht_len, ot):
+        startTime = datetime.strptime(startTime, '%Y-%m-%d %H:%M')
+        
+        if datetime.now() < startTime:
+            return startTime.strftime('%H:%M'), -1
+        time = int ((datetime.now() - startTime).seconds / 60)
+
+        if time < ht_start:
+            return str(time) + '\'', time
+        elif time < ht_start + ht_len:
+            return 'HT', ht_start
+        elif time < 90 + ht_len:
+            return str(time - ht_len) + '\'', time - ht_len
+        elif time < 90 + ht_len + ot:
+            return str(time - ht_len) + '\' + ' + str(time - 90 - ht_len) + '\'', time - ht_len
+        else:
+            return 'FT', time - ht_len
+
     def updatingData(self):
         while True:
+            for ele in self.remove:
+                self.details.pop(ele)
+            self.remove = []
+
             matches = []
-            check = [*self.details]
-            if 'main' in check:
-                check.remove('main')
+            matchDetail = [*self.details]
+            if 'main' in matchDetail:
+                matchDetail.remove('main')
             else:
                 break
 
-            if self.dateMatch == '':
+            if self.details['main'][0] == '':
                 matches_tuple = self.req.command('listAll')
             else:
-                matches_tuple = self.req.command('listAllDate', self.dateMatch)
+                matches_tuple = self.req.command('listAllDate', self.details['main'][0])
 
-            if matches_tuple != []:
-                for element in matches_tuple:
-                    haveDetail = element[0] in check
-                    if haveDetail:
-                        details = self.req.command('getDls', element[0])
+            for match in matches_tuple:
+                id, timeStamp, team1Name, team2Name, score1, score2, isDone = match
+                details = self.req.command('getDls', id)
 
-                    if element[6] == 1: 
-                        time = 'FT'
-                        score = str(element[4]) + ' - ' + str(element[5])
-                    
-                    else:
-                        if haveDetail:
-                            ht_start, ht_len = 45, 0
-                            for detail in details:
-                                if detail[3] == 4:
-                                    ht_start = detail[2]
-                                    ht_len = detail[4]
-                                    break
+                time, timeInt, score = self.caculateMatch(match, details)
+                matches.append([id, time, team1Name, score, team2Name])
 
-                        else:
-                            ht = self.req.command('getHT', element[0])
-                            if not ht:
-                                ht_start, ht_len = 45, 0
-                            else:
-                                ht_start, ht_len = ht[0]
-
-                        time, timeInt = calcTime(element[1], int(ht_start), int(ht_len), 0)
-                        if timeInt != -1:
-                            if haveDetail:
-                                rows = []
-                                score = [0, 0]
-                                for detail in details:
-                                    id = detail[1]
-                                    time = str(detail[2]) + '\''
-                                    event = eventCodeToName(detail[3])
-                                    player = detail[5]
-                                    
-                                    if detail[3] == 1:
-                                        score[detail[4]] += 1
-                                    
-                                    if detail[3] != 4 and detail[3] != 5:
-                                        if detail[4] == 0:
-                                            player1, event1 = player, event
-                                            player2, event2 = '', ''
-                                        else:
-                                            player2, event2 = player, event
-                                            player1, event1 = '', ''
-                                    else:
-                                        event1 = event2 = event
-                                        player1 = player2 = ''
-
-                                    scoreDisp = str(score[0]) + ' - ' + str(score[1])
-                                    rows.append([id, time, player1, event1, scoreDisp, event2, player2])
-                                
-                                # for detail in details:
-                                #     if detail[2] <= timeInt:
-                                #         if detail[3] == 1:
-                                #             score[detail[4]] += 1
-                                #     else:
-                                #         break
-                            else:
-                                goals = self.req.command('getGoal', element[0])
-                                score = [0, 0]
-                                if goals:
-                                    for goal in goals:
-                                        if goal[0] <= timeInt:
-                                            score[goal[1]] += 1
-                                        else:
-                                            break
-
-                            scoreDisp = str(score[0]) + ' - ' + str(score[1])
-                        else:
-                            scoreDisp = '? - ?'
-
-                    if haveDetail:
-                        self.details[element[0]] = [list(element)[0:4] + [scoreDisp, time], rows]
-                    matches.append([element[0], time, element[2], scoreDisp, element[3]])
+                if id in matchDetail:
+                    self.details[id][1] = [[id, timeStamp, time, team1Name, team2Name, score, timeInt], None]
+                    self.details[id][2] = details
+            self.details['main'][1] = matches
             
-            self.details['main'] = matches
+
+            for id in matchDetail:
+                if self.details[id][2] is None:
+                    details = self.req.command('getDls', id)
+                    match = self.req.command('getMatch', id)
+
+                    time, timeInt, score = self.caculateMatch(match[0], details)
+                    matches.append([id, time, team1Name, score, team2Name])
+
+                    self.details[id][1] = [[id, timeStamp, time, team1Name, team2Name, score, timeInt], None]
+                else:
+                    details = self.details[id][2]
+                    self.details[id][2] = None
+
+                rows = []
+                score = [0, 0]
+                isRealtime = self.details[id][0]
+                timeInt = self.details[id][1][0][6]
+                for _match, _id, _time, _code, _team, _player in details:
+                    if isRealtime and _time > timeInt:
+                        break
+
+                    if _code == 1:
+                        score[_team] += 1
+
+                    codeName = eventCodeToName(_code)
+                    if _time > 90:
+                        timeDisp = '90\' + ' + str(_time - 90) +'\''
+                    else:
+                        timeDisp = str(_time) +'\''
+
+                    if _code == 1 or _code == 4 or _code == 5:
+                        scoreDisp =  str(score[0]) + ' - ' + str(score[1])
+                    else:
+                        scoreDisp = ''
+
+                    if _code == 4 or _code == 5:
+                        event1 = event2 = codeName
+                        player1 = player2 = ''
+                    else:
+                        if _team == 0:
+                            player1, event1 = _player, codeName
+                            player2, event2 = '', ''
+                        else:
+                            player2, event2 = _player, codeName
+                            player1, event1 = '', ''
+                    
+                    rows.append([_id, timeDisp, player1, event1, scoreDisp, event2, player2])
+                self.details[id][1][1] = rows
+
             tm.sleep(self.timeout)
 
 
-def calcTime(startTime, ht_start, ht_len, ot):
-    startTime = datetime.strptime(startTime, '%Y-%m-%d %H:%M')
-    
-    if datetime.now() < startTime:
-        return startTime.strftime('%H:%M'), -1
-    time = int ((datetime.now() - startTime).seconds / 60)
-
-    if time < ht_start:
-        return str(time) + '\'', time
-    elif time < ht_start + ht_len:
-        return 'HT', ht_start
-    elif time < 90 + ht_len:
-        return str(time - ht_len) + '\'', time - ht_len
-    elif time < 90 + ht_len + ot:
-        return str(time - ht_len) + '\' + ' + str(time - 90) + '\'', time - ht_len
-    else:
-        return 'FT', time - ht_len
 
 def eventCodeToName(code):
     if code == 1:

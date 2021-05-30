@@ -263,6 +263,9 @@ class userGUI:
         def dateChanged(event):
             selectedDate = self.txt_date.get_date()
             self.allDate.deselect()
+
+            self.services.update.details['main'][0] = str(self.txt_date.get_date())
+
         self.txt_date.bind('<<DateEntrySelected>>', dateChanged)
 
         self.master.update_idletasks()
@@ -277,15 +280,17 @@ class userGUI:
     def checker(self):
         if self.isCheck.get() == 0:
             self.txt_date.config(state = 'normal')
+            self.services.update.details['main'][0] = str(self.txt_date.get_date())
             # khi bo chon all date thi hien thi lai ds tran dau cua ngay trong txt_date
         if self.isCheck.get() == 1:
             self.txt_date.config(state = 'disabled')
+            self.services.update.details['main'][0] = ''
                 
 
     def schedule(self):
-        matches = self.services.update.details['main']
+        matches = self.services.update.details['main'][1]
         if matches is not None:
-            if matches:
+            if matches != False:
                 choosen = self.tree.item(self.tree.focus())['values']
                 for row in self.tree.get_children():
                     self.tree.delete(row)
@@ -313,6 +318,10 @@ class userGUI:
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
             showwarning("Warning", "Choose a match to see detail")
+            return
+
+        if match[0] in [*self.services.update.details]:
+            showinfo('Oops', 'You have already opened this match')
             return
 
         window_detail = Toplevel(self.master)
@@ -472,34 +481,36 @@ class detailGUI:
         self.schedule()
 
     def schedule(self):
-        details = self.services.update.details[self.match]
+        details = self.services.update.details[self.match][1]
         if details is not None:
             if details:
                 match, rows = details
-                self.lbl_ID.config(text = match[0])
-                self.lbl_time.config(text = match[1])
-                self.lbl_team1.config(text = match[2])
-                self.lbl_team2.config(text = match[3])
-                self.lbl_score.config(text = match[4])
-                self.lbl_currTime.config(text = match[5])
+                id, timeStamp, time, team1Name, team2Name, score, timeInt = match
+                self.lbl_ID.config(text = id)
+                self.lbl_time.config(text = timeStamp)
+                self.lbl_team1.config(text = team1Name)
+                self.lbl_team2.config(text = team2Name)
+                self.lbl_score.config(text = score)
+                self.lbl_currTime.config(text = time)
 
-                choosen = self.tree.item(self.tree.focus())['values']
-                for row in self.tree.get_children():
-                    self.tree.delete(row)
-
-                for row in rows:
-                    self.tree.insert('', tk.END, values = row)
-
-                if choosen != '':
-                    id = None
+                if rows is not None:
+                    choosen = self.tree.item(self.tree.focus())['values']
                     for row in self.tree.get_children():
-                        if self.tree.item(row)['values'][0] == choosen[0]:
-                            id = row
-                            break
+                        self.tree.delete(row)
 
-                    if id is not None: 
-                        self.tree.selection_set(id)   
-                        self.tree.focus(id)
+                    for row in rows:
+                        self.tree.insert('', tk.END, values = row)
+
+                    if choosen != '':
+                        id = None
+                        for row in self.tree.get_children():
+                            if self.tree.item(row)['values'][0] == choosen[0]:
+                                id = row
+                                break
+
+                        if id is not None: 
+                            self.tree.selection_set(id)   
+                            self.tree.focus(id)
             else:
                 showerror('Error', 'Unable to fetch data')
                 self.on_closing()
@@ -534,11 +545,14 @@ class detailGUI:
         if event == '':
             return
 
-        if not self.req.command('delDetail', event[0]):
+        if not self.services.req.command('delDetail', event[0]):
             showerror('Error', 'Unable to delete match')  
 
     def checker(self):
-        pass
+        if self.isCheck.get() ==  1:
+            self.services.update.details[self.match][0] = False
+        else:
+            self.services.update.details[self.match][0] = True
 
 
 class addEventGUI:
@@ -614,7 +628,7 @@ class addEventGUI:
         self.txt_ID.grid(column = 0, row = 1, columnspan = 3, sticky = EW, padx = 0)
 
         self.lbl_team = Label(self.master, text = 'Team')
-        self.teams = self.services.update.details[self.match][0][2:4]
+        self.teams = self.services.update.details[self.match][1][0][3:5]
         self.selected_team = tk.StringVar()
         self.cbb_team = ttk.Combobox(self.master, textvariable = self.selected_team)
         self.cbb_team['values'] = self.teams
@@ -704,9 +718,6 @@ class addEventGUI:
         if (not time.isdigit()) or int(time) < 0:
             return False
         if code == '4' or code == '5':
-            for detail in self.details[1]:
-                if detail[3] == code and detail[1] != id:
-                    return False
             if (not team.isdigit()) or int(team) < 0:
                 return False
         else:
@@ -731,7 +742,7 @@ class addEventGUI:
     def add(self):
         id, code, time, team, player = self.getData()
         if self.checkData(id, code, time, team, player):
-            if self.services.req.command('insertDetail', (id, self.services.update.details[self.match][0][0], code, team, player, time)):
+            if self.services.req.command('insertDetail', (id, self.services.update.details[self.match][1][0][0], code, team, player, time)):
                 self.cancel()
             else:
                 showerror('Error', 'Unable to add this event')
