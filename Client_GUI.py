@@ -426,7 +426,10 @@ class detailGUI:
         self.lbl_ID = Label(self.master)
         self.lbl_ID.config(text = match)
 
-        self.lbl_time = Label(self.master, font=(None, 12))
+        self.lbl_time = Label(self.master)
+        self.lbl_time.config(text = match)
+
+        self.lbl_currTime = Label(self.master, font=(None, 18))     # phut hien tai cua tran dau
 
         self.lbl_team1 = Label(self.master, font=(None, 14))
 
@@ -450,20 +453,22 @@ class detailGUI:
             self.checkbox.place(x = 310, y = 0)
 
             self.lbl_ID.place(x = 10, y = 30)
-            self.lbl_time.place( x = 600, y = 30)
+            self.lbl_time.place( x = 10, y = 50)
+            self.lbl_currTime.place(x = 650, y = 30)
             self.master.update()
             self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 60)
             self.master.update()
-            self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 60)
+            self.lbl_score.place(x = (60+180+120+(70)/2-10), y = 60)
             self.master.update()
             self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 60)
         else:
             self.lbl_ID.place(x = 10, y = 0)
-            self.lbl_time.place( x = 600, y = 0)
+            self.lbl_time.place( x = 10, y = 20)
+            self.lbl_currTime.place(x = 600, y = 0)
             self.master.update()
             self.lbl_team1.place(x = (60+(180+120)/2-self.lbl_team1.winfo_reqwidth()/2), y = 30)
             self.master.update()
-            self.lbl_score.place(x = (60+180+120+(70)/2-self.lbl_score.winfo_reqwidth()/2), y = 30)
+            self.lbl_score.place(x = (60+180+120+(70)/2-10), y = 30)
             self.master.update()
             self.lbl_team2.place(x = (60+180+120+70+(120+180)/2-self.lbl_team2.winfo_reqwidth()/2), y = 30)
 
