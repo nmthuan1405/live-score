@@ -14,14 +14,21 @@ class Server_GUI:
         self.master['padx'] = 15
         self.master['pady'] = 15
 
-        self.btn_start = Button(self.master, text = "Start Server", font=(None, 12), width = 16, height = 3, command = self.start)
-        self.btn_start.grid(row = 0, column = 1, rowspan = 2, ipady = 5)
+        self.btn_start = Button(self.master, text = "Start Server", font=(None, 12), width = 25, height = 3, command = self.start)
+        self.btn_start.grid(row = 0, column = 0, rowspan = 2, columnspan = 2, ipady = 5, sticky = W)
 
         self.btn_clear = Button(self.master, text = "Clear log", width = 10, height = 1, command = self.clear)
-        self.btn_clear.grid(row = 0, column = 2, sticky = NW, ipady = 3)
+        self.btn_clear.grid(row = 0, column = 2, sticky = NE, ipady = 3)
 
         self.btn_exit = Button(self.master, text = "Exit", width = 10, height = 1, command = self.exit)
-        self.btn_exit.grid(row = 1, column = 2, sticky = SW, ipady = 3)
+        self.btn_exit.grid(row = 1, column = 2, sticky = SE, ipady = 3)
+        
+        self.lbl_max = Label(self.master, text = "Maximum number of Clients")
+        self.lbl_max.grid(row = 0, column = 3, sticky = SE, pady = 2)
+
+        self.maxClients = tk.IntVar(value = 5)
+        self.spinmaxClients = tk.Spinbox(self.master, width = 3,font=(None, 12), from_=0, to=30, textvariable=self.maxClients, wrap=True)
+        self.spinmaxClients.grid(row = 1, column = 3, sticky = N, pady = 2)
 
         self.lbl_log = Label(self.master, text = "Activity log")
         self.lbl_log.grid(row = 2, column = 0, sticky = W)
@@ -62,6 +69,8 @@ class Server_GUI:
             else:
                 self.btn_start.config(text = "Stop Server")
 
+                self.spinmaxClients.config(state = 'disabled')
+
         else:
             count = self.services.clientCount()
             if count > 0 and not askokcancel("Stop", f"{count} client(s) is connecting.\nDo you really want to stop server?"):
@@ -71,6 +80,8 @@ class Server_GUI:
             self.services = None
             
             self.btn_start.config(text = "Start Server")
+
+            self.spinmaxClients.config(state = 'normal')
 
     def clear(self):
         self.result_area.config(state = 'normal')
