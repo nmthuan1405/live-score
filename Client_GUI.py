@@ -645,7 +645,6 @@ class addEventGUI:
 
                 self.lbl_duration.grid(column = 0, row = 6, sticky = W)
                 self.spinDur.set(15)
-                self.spinDur.config(state = 'normal')
                 self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
                 self.lbl_min.grid(row = 7, column = 1, sticky = W)
                 self.txt_time.config(state = 'normal')
@@ -660,7 +659,6 @@ class addEventGUI:
 
                 self.lbl_duration.grid(column = 0, row = 6, sticky = W)
                 self.spinDur.set(5)
-                self.spinDur.config(state = 'disable')
                 self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
                 self.lbl_min.grid(row = 7, column = 1, sticky = W)
                 self.txt_time.delete(0, 'end')
