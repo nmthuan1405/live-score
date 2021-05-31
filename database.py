@@ -8,7 +8,7 @@ class Database:
     def __init__(self, dbName = 'database.db'):
         isExists = os.path.isfile(dbName)
 
-        self.con = sqlite3.connect(dbName, check_same_thread=False)
+        self.con = sqlite3.connect(dbName, check_same_thread = False)
         self.cur = self.con.cursor()
 
         if not isExists:
@@ -142,13 +142,16 @@ class Database:
 
     def start(self):
         if self.db_thread is None:
-            self.db_thread = threading.Thread(target = self.run)
+            self.db_thread = threading.Thread(target = self.run, daemon = True)
             self.db_thread.start()
 
     def stop(self):
-        if self.db_thread is not None:
-            self.command('exit', '')
-            self.db_thread.join()
-            self.db_thread = None
+        try:
+            if self.db_thread is not None:
+                self.command('exit', '')
+                self.db_thread.join(5)
+                self.db_thread = None
 
-        self.con.close()
+            self.con.close()
+        except:
+            pass

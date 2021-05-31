@@ -24,7 +24,7 @@ class Server:
         self.socket.bind(('', self.port))
         self.socket.listen()
 
-        self.server_thread = threading.Thread(target = self.addClient)
+        self.server_thread = threading.Thread(target = self.addClient, daemon = True)
         self.server_thread.start()
         self.writeLog('Start add client thread')
         
@@ -49,16 +49,13 @@ class Server:
             # server.shutdown(socket.SHUT_RDWR)
             server.close()
         finally:
-            self.server_thread.join()
+            try:
+                self.server_thread.join(5)
+            except:
+                pass
+
             self.db.stop()
             self.writeLog('Exit database thread')
-
-    def countClient(self):
-        count = 0
-        for client in self.clients:
-                if not client.isClosed():
-                    count += 1
-        return count
 
     def addClient(self):
         while True:
@@ -66,7 +63,11 @@ class Server:
                 conn, addr = self.socket.accept()
 
                 if self.clientCount[0] >= self.clientCount[1]:
-                    conn.close()
+                    try:
+                        conn.close()
+                    except:
+                        pass
+
                     self.writeLog('Number of client(s) is maximum')
                 else:
                     client = Client(conn, addr, self.db, self.log, self.clientCount)
@@ -104,7 +105,7 @@ class Client:
 
     def start(self):
         self.writeLog('START CLIENT')
-        self.client_thread = threading.Thread(target = self.services)
+        self.client_thread = threading.Thread(target = self.services, daemon = True)
         self.client_thread.start()
 
     def close(self):
@@ -117,7 +118,7 @@ class Client:
             client.close()
         finally:
             try:
-                self.client_thread.join()
+                self.client_thread.join(5)
             except:
                 pass
 
@@ -183,7 +184,8 @@ class Client:
                 else:
                     self.socket = None
                     self.writeLog('Client have unexpected error. Exit thread')
-                self.clientCount -= 1
+                    
+                self.clientCount[0] -= 1
                 break
             
 
