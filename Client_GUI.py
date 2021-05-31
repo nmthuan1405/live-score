@@ -15,10 +15,12 @@ import threading
 from datetime import datetime
 
 timeout = 2000
+windowsDetail = None
 
 class ClientGUI:
     def __init__(self, master):
-        #master.report_callback_exception = self.report_callback_exception
+        master.report_callback_exception = self.report_callback_exception
+
         self.services = None
         self.master = master
         self.master.title("Client")
@@ -86,9 +88,19 @@ class ClientGUI:
     def report_callback_exception(self, *args):
         self.services = None
 
+        if windowsDetail:
+            windowsDetail.destroy()
+            self.master.deiconify()
+        
         self.txt_IP_input.config(state = 'normal')
         self.btn_connect.config(text = 'Connect')
-        # showerror(title = 'Error', message = 'Lost connection')
+        self.txt_User.config(state = 'disabled')
+        self.txt_Password.config(state = 'disabled')
+        self.btn_SignUp.config(state = 'disabled')
+        self.btn_SignIn.config(state = 'disabled')
+        self.txt_IP_input.focus()
+
+        showerror(title = 'Error', message = 'Lost connection', parent = self.master)
 
     def connect(self):
         if self.services == None:
@@ -110,9 +122,6 @@ class ClientGUI:
                 self.btn_SignIn.config(state = 'normal')
                 self.txt_User.focus()
 
-                self.txt_User.insert(-1, 'admin')
-                self.txt_Password.insert(-1, 'admin')
-        
         else:
             self.services.s_close()
             self.services = None
@@ -146,7 +155,7 @@ class ClientGUI:
         User = self.txt_User.get()
         Pass = self.txt_Password.get()
         if User == '' or Pass == '':
-            showerror('Error', 'Invalid value')
+            showerror('Error', 'Invalid value', parent = self.master)
             return
 
         check = self.services.s_auth(User, Pass, 'signUp')
@@ -162,6 +171,8 @@ class ClientGUI:
             return
 
         window_user = Toplevel(self.master)
+        global windowsDetail
+        windowsDetail = window_user
         userGUI(window_user, self.master, self.services)
         window_user.mainloop()
 
@@ -169,8 +180,10 @@ class ClientGUI:
         if self.services != None:
             if not askokcancel("Exit", "Client is connecting.\nDo you want to disconnect?"):
                 return
-            
-            self.services.s_close()
+            try:
+                self.services.s_close()
+            except:
+                pass
             
         self.master.destroy()
 
@@ -188,6 +201,7 @@ class userGUI:
             self.master.title("User")
         self.master.resizable(0, 0)
 
+
         self.master.focus()
         self.master.grab_set()
         self.master['padx'] = 10
@@ -196,7 +210,7 @@ class userGUI:
         self.lbl_date = Label(self.master, text='Choose date:')
         self.lbl_date.place(x = 0, y = 0)
 
-        self.txt_date = DateEntry(self.master, width=12, background='darkblue', foreground='white', borderwidth=2)
+        self.txt_date = DateEntry(self.master, width=12, background='gray', foreground='white', borderwidth=2)
         self.txt_date.config(state = 'disabled')
         self.txt_date.place(x = 80, y = 0)
 
@@ -285,7 +299,6 @@ class userGUI:
         if self.isCheck.get() == 0:
             self.txt_date.config(state = 'normal')
             self.services.update.details['main'][0] = str(self.txt_date.get_date())
-            # khi bo chon all date thi hien thi lai ds tran dau cua ngay trong txt_date
         if self.isCheck.get() == 1:
             self.txt_date.config(state = 'disabled')
             self.services.update.details['main'][0] = False
@@ -312,20 +325,23 @@ class userGUI:
                     if id is not None: 
                         self.tree.selection_set(id)   
                         self.tree.focus(id)
+
+                self.lbl_load.config(text = '')
             else:
-                showerror('Error', 'Unable to fetch data')
+                showerror('Error', 'Unable to fetch data', parent = self.master)
                 return
+
         self.master.after(timeout, self.schedule)
 
 
     def detail(self):
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
-            showwarning("Warning", "Choose a match to see detail")
+            showwarning("Warning", "Choose a match to see detail", parent = self.master)
             return
 
         if match[0] in [*self.services.update.details]:
-            showinfo('Oops', 'You have already opened this match')
+            showinfo('Oops', 'You have already opened this match', parent = self.master)
             return
 
         window_detail = Toplevel(self.master)
@@ -336,7 +352,7 @@ class userGUI:
     def edit(self):
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
-            showwarning("Warning", "Choose a match to edit")
+            showwarning("Warning", "Choose a match to edit", parent = self.master)
             return
 
         window_edit = Toplevel(self.master)
@@ -351,11 +367,13 @@ class userGUI:
     def delete(self):
         match = self.tree.item(self.tree.focus())['values']
         if match == '':
-            showwarning("Warning", "Choose a match to delete")
+            showwarning("Warning", "Choose a match to delete", parent = self.master)
             return
 
-        if not self.services.req.command('delMatch', match[0]):
-            showerror('Error', 'Unable to delete match')        
+        if self.services.req.command('delMatch', match[0]):
+            showinfo('Success', 'Delete match successfully', parent = self.master)
+        else:
+            showerror('Error', 'Unable to delete match', parent = self.master)        
 
     def editAccount(self):
         window_editAccount = Toplevel(self.master)
@@ -367,7 +385,11 @@ class userGUI:
         self.services.req.stop()
         self.services.s_signOut()
 
+
         self.master.destroy()
+
+        global windowsDetail
+        windowsDetail = None
         self.parent.deiconify()
 
 class detailGUI:
@@ -538,7 +560,7 @@ class detailGUI:
     def editEvent(self):
         event = self.tree.item(self.tree.focus())['values']
         if event == '':
-            showwarning("Warning", "Choose an event to edit.", parent = self.master)
+            showwarning("Warning", "Choose an event to edit", parent = self.master)
             return
 
         window_editEvent = Toplevel(self.master)
@@ -548,10 +570,13 @@ class detailGUI:
     def deleteEvent(self):
         event = self.tree.item(self.tree.focus())['values']
         if event == '':
+            showwarning("Warning", "Choose an event to delete", parent = self.master)
             return
 
-        if not self.services.req.command('delDetail', event[0]):
-            showerror('Error', 'Unable to delete match')  
+        if self.services.req.command('delDetail', event[0]):
+            showinfo('Success', 'Delete event successfully', parent = self.master)
+        else:
+            showerror('Error', 'Unable to delete match', parent = self.master)  
 
     def checker(self):
         if self.isCheck.get() ==  1:
@@ -750,20 +775,22 @@ class addEventGUI:
         if self.checkData(id, code, time, team, player):
             if self.services.req.command('insertDetail', (id, self.services.update.details[self.match][1][0][0], code, team, player, time)):
                 self.cancel()
+                showinfo('Success', 'Add event successfully', parent = self.parent)
             else:
-                showerror('Error', 'Unable to add this event')
+                showerror('Error', 'Unable to add this event', parent = self.master)
         else:
-            showerror('Error', 'Invalid data')
+            showerror('Error', 'Invalid data', parent = self.master)
         
     def change(self):
         id, code, time, team, player = self.getData()
         if self.checkData(id, code, time, team, player):
             if self.services.req.command('editDetail', (id, code, team, player, time)):
                 self.cancel()
+                showinfo('Success', 'Edit event successfully', parent = self.parent)
             else:
-                showerror('Error', 'Unable to edit this event')
+                showerror('Error', 'Unable to edit this event', parent = self.master)
         else:
-            showerror('Error', 'Invalid data')
+            showerror('Error', 'Invalid data', parent = self.master)
 
     def cancel(self):
         self.master.destroy()
@@ -924,7 +951,7 @@ class addMatchGUI:
             time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
             if self.services.req.command('addMatch', (id, team1, team2, time)):
                 self.on_closing()
-                showinfo('Success', 'Change match\'s information successfully', parent = self.parent)
+                showinfo('Success', 'Add match successfully', parent = self.parent)
             else:
                 showerror('Error', 'Unable to create a new match', parent = self.master)
         else:

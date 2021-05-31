@@ -42,7 +42,7 @@ class Database:
 
     def createTable(self):
         self.execute("CREATE TABLE IF NOT EXISTS auth(user text, pass text, isAdmin int, PRIMARY KEY (user))")
-        self.execute("CREATE TABLE IF NOT EXISTS match(id text, time text, team1 text, team2 text, score1 int, score2 int, isDone int, PRIMARY KEY (id))")
+        self.execute("CREATE TABLE IF NOT EXISTS match(id text, time text, team1 text, team2 text, PRIMARY KEY (id))")
         self.execute("CREATE TABLE IF NOT EXISTS detail(match text, id text, time int, code int, team int, player text, PRIMARY KEY (id), FOREIGN KEY (match) REFERENCES match(id))")
 
         self.update("INSERT INTO auth VALUES ('admin', 'admin', 1)")
@@ -58,7 +58,7 @@ class Database:
         return None
 
     def insertMatch(self, id, team1Name, team2Name, time):
-        return self.command('updates', [("INSERT INTO match VALUES (?, ?, ?, ?, 0, 0, 0)", (id, time, team1Name, team2Name)),
+        return self.command('updates', [("INSERT INTO match VALUES (?, ?, ?, ?)", (id, time, team1Name, team2Name)),
                                         ("INSERT INTO detail VALUES (?, ?, '45', 4, '15', '')", (id, uuid.uuid4().hex))])
 
     def getMatch(self):
@@ -71,7 +71,7 @@ class Database:
         return self.command('query', "SELECT * FROM match WHERE id = ?", (id,))
 
     def editMatch(self, id, team1Name, team2Name, time):
-        return self.command('update',"UPDATE match SET team1 = ?, team2 = ?, time = ?, isDone = 0 WHERE id = ?", (team1Name, team2Name, time, id))
+        return self.command('update',"UPDATE match SET team1 = ?, team2 = ?, time = ? WHERE id = ?", (team1Name, team2Name, time, id))
         
     def setMatchScore(self, id, score):
         return self.command('update', "UPDATE match SET score1 = ?, score2 = ? WHERE id = ?", (score, id))

@@ -88,7 +88,7 @@ class Client:
     def send_state(self, state):
         self.send_str(str(state))
 
-    def s_auth(self, User, Pass, type, isAdmin = False):
+    def s_auth(self, User, Pass, type, isAdmin = '0'):
         self.send_str(type)
         
         self.send_str(User)
@@ -210,48 +210,53 @@ class QueueServer():
 
     def run(self):
         while True:
-            id, cmd, arg = self.request.get()
+            try:
+                id, cmd, arg = self.request.get()
 
-            if cmd == 'listAll':
-                res = self.services.s_getMatch()
-            elif cmd == 'addMatch':
-                res = self.services.s_addMatch(arg[0], arg[1], arg[2], arg[3])
-            elif cmd == 'editMatch':
-                res = self.services.s_editMatch(arg[0], arg[1], arg[2], arg[3])
-            elif cmd == 'delMatch':
-                res = self.services.s_delMatch(arg)
-            elif cmd == 'getMatch':
-                res = self.services.s_getMatchID(arg)
-            elif cmd == 'getDls':
-                res = self.services.s_getDetails(arg)
-            elif cmd == 'getDetail':
-                res = self.services.s_getDetail(arg)
-            elif cmd == 'editDetail':
-                res = self.services.s_editDetail(arg[0], arg[1], arg[2], arg[3], arg[4])
-            elif cmd == 'insertDetail':
-                res = self.services.s_insertDetail(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5])
-            elif cmd == 'delDetail':
-                res = self.services.s_delDetail(arg)
-            elif cmd == 'getHT':
-                res = self.services.s_getHT(arg)
-            elif cmd == 'getGoal':
-                res = self.services.s_getGoal(arg)
-            elif cmd == 'listAllDate':
-                res = self.services.s_getAllDate(arg)
-            elif cmd == 'editAccount':
-                res = self.services.s_editAccount(arg[0], arg[1], arg[2])
-            elif cmd == 'delAccount':
-                res = self.services.s_delAccount(arg)
-            elif cmd == 'accountList':
-                res = self.services.s_accountList()
-            elif cmd == 'signUp':
-                res = self.services.s_auth(arg[0], arg[1], 'signUp', arg[2])
-            elif cmd == 'exit':
-                break
-            else:
+                if cmd == 'listAll':
+                    res = self.services.s_getMatch()
+                elif cmd == 'addMatch':
+                    res = self.services.s_addMatch(arg[0], arg[1], arg[2], arg[3])
+                elif cmd == 'editMatch':
+                    res = self.services.s_editMatch(arg[0], arg[1], arg[2], arg[3])
+                elif cmd == 'delMatch':
+                    res = self.services.s_delMatch(arg)
+                elif cmd == 'getMatch':
+                    res = self.services.s_getMatchID(arg)
+                elif cmd == 'getDls':
+                    res = self.services.s_getDetails(arg)
+                elif cmd == 'getDetail':
+                    res = self.services.s_getDetail(arg)
+                elif cmd == 'editDetail':
+                    res = self.services.s_editDetail(arg[0], arg[1], arg[2], arg[3], arg[4])
+                elif cmd == 'insertDetail':
+                    res = self.services.s_insertDetail(arg[0], arg[1], arg[2], arg[3], arg[4], arg[5])
+                elif cmd == 'delDetail':
+                    res = self.services.s_delDetail(arg)
+                elif cmd == 'getHT':
+                    res = self.services.s_getHT(arg)
+                elif cmd == 'getGoal':
+                    res = self.services.s_getGoal(arg)
+                elif cmd == 'listAllDate':
+                    res = self.services.s_getAllDate(arg)
+                elif cmd == 'editAccount':
+                    res = self.services.s_editAccount(arg[0], arg[1], arg[2])
+                elif cmd == 'delAccount':
+                    res = self.services.s_delAccount(arg)
+                elif cmd == 'accountList':
+                    res = self.services.s_accountList()
+                elif cmd == 'signUp':
+                    res = self.services.s_auth(arg[0], arg[1], 'signUp', arg[2])
+                elif cmd == 'exit':
+                    break
+                else:
+                    res = False
+            except:
+                self.client_thread = None
                 res = False
-
-            self.result[id] = res
+            finally:
+                self.result[id] = res
+            
    
     def start(self):
         if self.client_thread is None:
@@ -260,10 +265,12 @@ class QueueServer():
 
     def stop(self):
         if self.client_thread is not None:
-            self.command('exit')
-            self.client_thread.join(5)
-            self.client_thread = None
-            self.result = {}
+            try:
+                self.command('exit')
+                self.client_thread.join(5)
+            finally:
+                self.client_thread = None
+                self.result = {}
 
     def command(self, cmd, arg = ()):
         id = uuid.uuid4().hex
@@ -302,12 +309,13 @@ class UpdateInfo:
             self.thread.start()
 
     def stop(self):
-        self.stopped.set()
-        self.thread.join(5)
-
-        self.thread = None
-        self.details = {}
-        self.dateMatch = ''
+        try:
+            self.stopped.set()
+            self.thread.join(5)
+        finally:
+            self.thread = None
+            self.details = {}
+            self.dateMatch = ''
 
     def caculateHT(self, details):
         ht_start, ht_len, ot = 45, 0, 0
@@ -321,28 +329,24 @@ class UpdateInfo:
         return ht_start, ht_len, ot
 
     def caculateMatch(self, match, details):
-        id, timeStamp, team1Name, team2Name, score1, score2, isDone = match
+        id, timeStamp, team1Name, team2Name= match
 
-        if isDone == 1: 
-            time = 'FT'
-            scoreDisp = str(score1) + ' - ' + str(score2)
+        ht_start, ht_len, ot = self.caculateHT(details)
+        time, timeInt = self.calcTime(timeStamp, int(ht_start), int(ht_len), int(ot))
+
+        if timeInt != -1:
+            score = [0, 0]
+
+            for _match, _id, _time, _code, _team, _player in details:
+                if _time > timeInt:
+                    break
+
+                if _code == 1:
+                    score[_team] += 1
+
+            scoreDisp = str(score[0]) + ' - ' + str(score[1])
         else:
-            ht_start, ht_len, ot = self.caculateHT(details)
-            time, timeInt = self.calcTime(timeStamp, int(ht_start), int(ht_len), int(ot))
-
-            if timeInt != -1:
-                score = [0, 0]
-
-                for _match, _id, _time, _code, _team, _player in details:
-                    if _time > timeInt:
-                        break
-
-                    if _code == 1:
-                        score[_team] += 1
-
-                scoreDisp = str(score[0]) + ' - ' + str(score[1])
-            else:
-                scoreDisp = '? - ?'
+            scoreDisp = '? - ?'
         
         return time, timeInt, scoreDisp
 
@@ -365,80 +369,84 @@ class UpdateInfo:
             return 'FT', time - ht_len
 
     def updatingData(self):
-        while not self.stopped.wait(self.timeout):
-            for ele in self.remove:
-                self.details.pop(ele)
-            self.remove = []
+        try:
+            while not self.stopped.wait(self.timeout):
+                for ele in self.remove:
+                    self.details.pop(ele)
+                self.remove = []
 
-            matchDetail = [*self.details]
-            matchDetail.remove('main')
+                matchDetail = [*self.details]
+                matchDetail.remove('main')
 
-            if self.details['main'][0] == False:
-                matches_tuple = self.req.command('listAll')
-            else:
-                matches_tuple = self.req.command('listAllDate', self.details['main'][0])
-
-            matches = []
-            for match in matches_tuple:
-                id, timeStamp, team1Name, team2Name, score1, score2, isDone = match
-                details = self.req.command('getDls', id)
-
-                time, timeInt, score = self.caculateMatch(match, details)
-                matches.append([id, time, team1Name, score, team2Name])
-
-                if id in matchDetail:
-                    self.details[id][1] = [[id, timeStamp, time, team1Name, team2Name, score, timeInt], None]
-                    self.details[id][2] = details
-            self.details['main'][1] = matches
-            
-
-            for id in matchDetail:
-                if self.details[id][2] is None:
-                    details = self.req.command('getDls', id)
-                    match = self.req.command('getMatch', id)
-
-                    time, timeInt, score = self.caculateMatch(match[0], details)
-                    self.details[id][1] = [[id, timeStamp, time, team1Name, team2Name, score, timeInt], None]
+                if self.details['main'][0] == False:
+                    matches_tuple = self.req.command('listAll')
                 else:
-                    details = self.details[id][2]
-                    self.details[id][2] = None
+                    matches_tuple = self.req.command('listAllDate', self.details['main'][0])
 
-                rows = []
-                score = [0, 0]
-                isRealtime = self.details[id][0]
-                timeInt = self.details[id][1][0][6]
-                for _match, _id, _time, _code, _team, _player in details:
-                    if isRealtime and _time > timeInt:
-                        break
+                matches = []
+                for match in matches_tuple:
+                    id, timeStamp, team1Name, team2Name = match
+                    details = self.req.command('getDls', id)
 
-                    if _code == 1:
-                        score[_team] += 1
+                    time, timeInt, score = self.caculateMatch(match, details)
+                    matches.append([id, time, team1Name, score, team2Name])
 
-                    codeName = eventCodeToName(_code)
-                    if _time > 90:
-                        timeDisp = '90\' + ' + str(_time - 90) +'\''
+                    if id in matchDetail:
+                        self.details[id][1] = [[id, timeStamp, time, team1Name, team2Name, score, timeInt], None]
+                        self.details[id][2] = details
+                self.details['main'][1] = matches
+                
+
+                for id in matchDetail:
+                    if self.details[id][2] is None:
+                        details = self.req.command('getDls', id)
+                        match = self.req.command('getMatch', id)
+
+                        time, timeInt, score = self.caculateMatch(match[0], details)
+                        self.details[id][1] = [[id, timeStamp, time, team1Name, team2Name, score, timeInt], None]
                     else:
-                        timeDisp = str(_time) +'\''
+                        details = self.details[id][2]
+                        self.details[id][2] = None
 
-                    if _code == 1 or _code == 4 or _code == 5:
-                        scoreDisp =  str(score[0]) + ' - ' + str(score[1])
-                    else:
-                        scoreDisp = ''
+                    rows = []
+                    score = [0, 0]
+                    isRealtime = self.details[id][0]
+                    timeInt = self.details[id][1][0][6]
+                    for _match, _id, _time, _code, _team, _player in details:
+                        if isRealtime and _time > timeInt:
+                            break
 
-                    if _code == 4 or _code == 5:
-                        event1 = event2 = codeName
-                        player1 = player2 = str(_team) + '\''
-                    else:
-                        if _team == 0:
-                            player1, event1 = _player, codeName
-                            player2, event2 = '', ''
+                        if _code == 1:
+                            score[_team] += 1
+
+                        codeName = eventCodeToName(_code)
+                        if _time > 90:
+                            timeDisp = '90\' + ' + str(_time - 90) +'\''
                         else:
-                            player2, event2 = _player, codeName
-                            player1, event1 = '', ''
-                    
-                    rows.append([_id, timeDisp, player1, event1, scoreDisp, event2, player2])
-                self.details[id][1][1] = rows
+                            timeDisp = str(_time) +'\''
 
+                        if _code == 1 or _code == 4 or _code == 5:
+                            scoreDisp =  str(score[0]) + ' - ' + str(score[1])
+                        else:
+                            scoreDisp = ''
+
+                        if _code == 4 or _code == 5:
+                            event1 = event2 = codeName
+                            player1 = player2 = str(_team) + '\''
+                        else:
+                            if _team == 0:
+                                player1, event1 = _player, codeName
+                                player2, event2 = '', ''
+                            else:
+                                player2, event2 = _player, codeName
+                                player1, event1 = '', ''
+                        
+                        rows.append([_id, timeDisp, player1, event1, scoreDisp, event2, player2])
+                    self.details[id][1][1] = rows
+        except:
+            self.thread = None
+            self.details = {}
+            self.dateMatch = ''
 
 
 def eventCodeToName(code):
