@@ -17,29 +17,33 @@ class Server_GUI:
         self.btn_start = Button(self.master, text = "Start Server", font=(None, 12), width = 25, height = 3, command = self.start)
         self.btn_start.grid(row = 0, column = 0, rowspan = 2, columnspan = 2, ipady = 5, sticky = W)
 
-        self.btn_clear = Button(self.master, text = "Clear log", width = 10, height = 1, command = self.clear)
-        self.btn_clear.grid(row = 0, column = 2, sticky = NE, ipady = 3)
+        self.btn_clear = Button(self.master, text = "Clear log", width = 13, height = 1, command = self.clear)
+        self.btn_clear.grid(row = 0, column = 2, sticky = NE, ipady = 3, padx = 15)
 
-        self.btn_exit = Button(self.master, text = "Exit", width = 10, height = 1, command = self.exit)
-        self.btn_exit.grid(row = 1, column = 2, sticky = SE, ipady = 3)
+        self.btn_exit = Button(self.master, text = "Exit", width = 13, height = 1, command = self.exit)
+        self.btn_exit.grid(row = 1, column = 2, sticky = SE, ipady = 3, padx = 15)
+
+        self.lbl_currClientsNum = Label(self.master)
+        self.lbl_currClientsNum.grid(row = 0, column = 3, sticky = SW, pady = 6)
+        self.lbl_currClientsNum.config(text = 'Number of connected Clients: ' + '0')
         
-        self.lbl_max = Label(self.master, text = "Maximum number of Clients")
-        self.lbl_max.grid(row = 2, column = 3, sticky = SE, pady = 2)
+        self.lbl_max = Label(self.master, text = "Maximum number of Clients:")
+        self.lbl_max.grid(row = 1, column = 3, sticky = SW)
 
         self.maxClients = tk.IntVar(value = 5)
         self.spinmaxClients = tk.Spinbox(self.master, width = 3,font=(None, 12), from_=0, to=30, textvariable=self.maxClients, wrap=True)
-        self.spinmaxClients.grid(row = 3, column = 3, sticky = N, pady = 2)
+        self.spinmaxClients.place(x = 535, y = 55)
 
         self.lbl_log = Label(self.master, text = "Activity log")
         self.lbl_log.grid(row = 2, column = 0, sticky = W)
 
-        self.result_area = scrolledtext.ScrolledText(self.master, wrap = tk.WORD, width = 60, height = 30, state = tk.DISABLED)
-        self.result_area.grid(row = 3, column = 0, columnspan = 4)
+        self.result_area = scrolledtext.ScrolledText(self.master, wrap = tk.WORD, width = 70, height = 30, state = tk.DISABLED)
+        self.result_area.grid(row = 3, column = 0, columnspan = 5)
 
 
         col_count, row_count = self.master.grid_size()
         for col in range(col_count):
-            self.master.grid_columnconfigure(col, minsize = 50)
+            self.master.grid_columnconfigure(col, minsize = 30)
         
         for row in range(row_count):
             self.master.grid_rowconfigure(row, minsize = 20)
