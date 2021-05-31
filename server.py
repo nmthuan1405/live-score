@@ -3,14 +3,15 @@ import pickle
 from sqlite3.dbapi2 import sqlite_version_info
 import threading
 from tkinter import INSERT
-import uuid
 import database
 
 class Server:
-    def __init__(self, log, port = 1234):
+    def __init__(self, log, maxClient, port = 1234):
         self.port = port
         self.clients = []
         self.log = log
+        self.clientCount = [0, maxClient]
+
 
         self.socket = None
         self.server_thread = None
@@ -52,7 +53,7 @@ class Server:
             self.db.stop()
             self.writeLog('Exit database thread')
 
-    def clientCount(self):
+    def countClient(self):
         count = 0
         for client in self.clients:
                 if not client.isClosed():
@@ -64,16 +65,22 @@ class Server:
             try:
                 conn, addr = self.socket.accept()
 
-                client = Client(conn, addr, self.db, self.log)
-                self.clients.append(client)
-                client.start()
-                
+                if self.clientCount[0] >= self.clientCount[1]:
+                    conn.close()
+                    self.writeLog('Number of client(s) is maximum')
+                else:
+                    client = Client(conn, addr, self.db, self.log, self.clientCount)
+                    self.clients.append(client)
+                    client.start()
+                    
             except:
                 if self.socket == None:
                     self.writeLog('Server stopped. Exit thread')
                 else:
                     self.socket = None
                     self.writeLog('Server have unexpected error. Exit thread')
+                    self.db.stop()
+                    self.writeLog('Exit database thread')
                 break
 
     def writeLog(self, data):
@@ -82,7 +89,7 @@ class Server:
 
 
 class Client:
-    def __init__(self, socket, addr, db, log, delim = b'\x00'):
+    def __init__(self, socket, addr, db, log, clientCount, delim = b'\x00'):
         self.addr = addr
         self.log = log
         self.delim = delim
@@ -92,6 +99,8 @@ class Client:
         self.buff = b''
         self.client_thread = None
         self.db = db
+        self.clientCount = clientCount
+        self.clientCount[0] += 1
 
     def start(self):
         self.writeLog('START CLIENT')
@@ -115,20 +124,21 @@ class Client:
     def services(self):
         while True:
 
-            # try:
+            try:
                 flag = self.recv_str()
                 self.writeLog(f'Received: {flag}')
 
                 if flag == 'close':
                     self.close()
+                elif flag == 'signUp':
+                    self.c_signUp()
+                elif flag == 'ping':
+                    self.send_state(True)
 
                 else:
                     if self.isAdmin is None:
                         if flag == 'signIn':
                             self.c_signIn()
-                        elif flag == 'signUp':
-                            self.c_signUp()
-
                     else:
                         if flag == 'signOut':
                             self.c_signOut()
@@ -160,14 +170,21 @@ class Client:
                                 self.c_insertDetail()
                             elif flag == 'delDetail':
                                 self.c_delDetail()
+                            elif flag == 'editAccount':
+                                self.c_editAccount()
+                            elif flag == 'delAccount':
+                                self.c_delAccount()
+                            elif flag == 'accountList':
+                                self.c_accountList()
 
-            # except:
-            #     if self.isClosed():
-            #         self.writeLog('Client closed. Exit thread')
-            #     else:
-            #         self.conn = None
-            #         self.writeLog('Client have unexpected error. Exit thread')
-            #     break
+            except:
+                if self.isClosed():
+                    self.writeLog('Client closed. Exit thread')
+                else:
+                    self.socket = None
+                    self.writeLog('Client have unexpected error. Exit thread')
+                self.clientCount -= 1
+                break
             
 
     def isClosed(self):
@@ -247,8 +264,9 @@ class Client:
     def c_signUp(self):
         User = self.recv_str()
         Pass = self.recv_str()
+        isAdmin = self.recv_str()
 
-        state = self.db.insertAccount(User, Pass)
+        state = self.db.insertAccount(User, Pass, isAdmin)
         self.send_obj(state)
 
         self.writeLog(f'SIGN UP. Sucess: {state}')
@@ -326,3 +344,16 @@ class Client:
     def c_getAllDate(self):
         date = self.recv_str()
         self.send_obj(self.db.getMatchDate(date))
+
+    def c_editAccount(self):
+        User = self.recv_str()
+        Pass = self.recv_str()
+        isAdmin = self.recv_str()
+        self.send_state(self.db.editAccount(User, Pass, isAdmin))
+
+    def c_delAccount(self):
+        User = self.recv_str()
+        self.send_state(self.db.delAccount(User))
+
+    def c_accountList(self):
+        self.send_obj(self.db.accountList())

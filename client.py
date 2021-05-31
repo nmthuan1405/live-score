@@ -89,11 +89,14 @@ class Client:
     def send_state(self, state):
         self.send_str(str(state))
 
-    def s_auth(self, User, Pass, type):
+    def s_auth(self, User, Pass, type, isAdmin = False):
         self.send_str(type)
         
         self.send_str(User)
         self.send_str(Pass)
+        if (type == 'signUp'):
+            self.send_str(isAdmin)
+
         return self.recv_obj()
 
     def s_close(self):
@@ -178,6 +181,25 @@ class Client:
         self.send_str(date)
         return self.recv_obj()
 
+    def s_editAccount(self, User, Pass, isAdmin):
+        self.send_str('editAccount')
+        self.send_str(User)
+        self.send_str(Pass)
+        self.send_str(isAdmin)
+        return self.recv_state()
+    
+    def s_delAccount(self, User):
+        self.send_str('delAccount')
+        self.send_str(User)
+        return self.recv_state()
+
+    def s_accountList(self):
+        self.send_str('accountList')
+        return self.recv_obj()
+
+    def s_ping(self):
+        self.send_str('ping')
+        return self.recv_state()
 
 class QueueServer():
     def __init__(self, services):
@@ -217,6 +239,14 @@ class QueueServer():
                 res = self.services.s_getGoal(arg)
             elif cmd == 'listAllDate':
                 res = self.services.s_getAllDate(arg)
+            elif cmd == 'editAccount':
+                res = self.services.s_editAccount(arg[0], arg[1], arg[2])
+            elif cmd == 'delAccount':
+                res = self.services.s_delAccount(arg)
+            elif cmd == 'accountList':
+                res = self.services.s_accountList()
+            elif cmd == 'signUp':
+                res = self.services.s_auth(arg[0], arg[1], 'signUp', arg[2])
             elif cmd == 'exit':
                 break
             else:
@@ -259,8 +289,8 @@ class UpdateInfo:
     def setTimeout(self, time):
         self.timeout = time / 1000
 
-    def addWindows(self, windows):
-        self.details[windows] = ['', None, None]
+    def addWindows(self, windows, realTime = True):
+        self.details[windows] = [realTime, None, None]
 
     def removeWindows(self, windows):
         self.remove.append(windows)
@@ -339,18 +369,18 @@ class UpdateInfo:
                 self.details.pop(ele)
             self.remove = []
 
-            matches = []
             matchDetail = [*self.details]
             if 'main' in matchDetail:
                 matchDetail.remove('main')
             else:
                 break
 
-            if self.details['main'][0] == '':
+            if self.details['main'][0] == False:
                 matches_tuple = self.req.command('listAll')
             else:
                 matches_tuple = self.req.command('listAllDate', self.details['main'][0])
 
+            matches = []
             for match in matches_tuple:
                 id, timeStamp, team1Name, team2Name, score1, score2, isDone = match
                 details = self.req.command('getDls', id)
@@ -370,8 +400,6 @@ class UpdateInfo:
                     match = self.req.command('getMatch', id)
 
                     time, timeInt, score = self.caculateMatch(match[0], details)
-                    matches.append([id, time, team1Name, score, team2Name])
-
                     self.details[id][1] = [[id, timeStamp, time, team1Name, team2Name, score, timeInt], None]
                 else:
                     details = self.details[id][2]

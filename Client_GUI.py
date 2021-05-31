@@ -95,6 +95,7 @@ class ClientGUI:
             try:
                 self.services = client.Client(self.txt_IP_input.get())
                 self.services.connect()
+                self.services.s_ping()
             except:
                 showerror(title = 'Error', message = 'Cannot connect to server.', parent = self.master)
                 self.services = None
@@ -272,7 +273,7 @@ class userGUI:
 
         # start init
         self.services.req.start()
-        self.services.update.addWindows('main')
+        self.services.update.addWindows('main', False)
         self.services.update.setTimeout(timeout)
         self.services.update.start()
         self.schedule()
@@ -284,7 +285,7 @@ class userGUI:
             # khi bo chon all date thi hien thi lai ds tran dau cua ngay trong txt_date
         if self.isCheck.get() == 1:
             self.txt_date.config(state = 'disabled')
-            self.services.update.details['main'][0] = ''
+            self.services.update.details['main'][0] = False
                 
 
     def schedule(self):
@@ -353,9 +354,9 @@ class userGUI:
         if not self.services.req.command('delMatch', match[0]):
             showerror('Error', 'Unable to delete match')        
 
-    def editAccount(self, parent):
+    def editAccount(self):
         window_editAccount = Toplevel(self.master)
-        editAccountGUI(window_editAccount, parent, self.services)
+        editAccountGUI(window_editAccount, self.master, self.services)
         window_editAccount.mainloop()
 
     def signOut(self):
@@ -477,7 +478,7 @@ class detailGUI:
         self.master.update_idletasks()
 
         # init
-        self.services.update.addWindows(self.match)
+        self.services.update.addWindows(self.match, not self.services.isAdmin)
         self.schedule()
 
 
@@ -902,7 +903,7 @@ class addMatchGUI:
         return id, team1, team2, hour, min
 
     def checkData(self, team1, team2, hour, min):
-        if team1 == '' or team2 == '':
+        if team1 == '' or team2 == '' or team1 == team2:
             return False 
         if (not hour.isdigit()) or int(hour) < 0 or int(hour) > 23:
             return False
@@ -917,10 +918,11 @@ class addMatchGUI:
             time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
             if self.services.req.command('editMatch', (id, team1, team2, time)):
                 self.on_closing()
+                showinfo('Success', 'Change match\'s information successfully', parent = self.parent)
             else:
-                showerror('Error', 'Unable to change match\'s information')
+                showerror('Error', 'Unable to change match\'s information', parent = self.master)
         else:
-            showerror('Error', 'Invalid data')
+            showerror('Error', 'Invalid data', parent = self.master)
 
     def add(self):
         id, team1, team2, hour, min = self.getData()
@@ -928,10 +930,11 @@ class addMatchGUI:
             time = str(self.txt_date.get_date()) + ' ' + hour.zfill(2) + ':' + min.zfill(2)
             if self.services.req.command('addMatch', (id, team1, team2, time)):
                 self.on_closing()
+                showinfo('Success', 'Change match\'s information successfully', parent = self.parent)
             else:
-                showerror('Error', 'Unable to create a new match')
+                showerror('Error', 'Unable to create a new match', parent = self.master)
         else:
-            showerror('Error', 'Invalid data')
+            showerror('Error', 'Invalid data', parent = self.master)
 
 
 class editAccountGUI:
@@ -947,13 +950,13 @@ class editAccountGUI:
 
         self.parent = parent
 
-        self.btn_edit = Button(self.master, text="Edit", command = partial(self.edit, self.master), width = 8)
-        self.btn_edit.grid(row = 0, column = 0, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+        self.btn_edit = Button(self.master, text="Edit", command = self.edit, width = 20)
+        self.btn_edit.grid(row = 0, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
 
-        self.btn_add = Button(self.master, text="Add", command = partial(self.add, self.master), width = 8)
-        self.btn_add.grid(row = 0, column = 1, padx = 0, pady = 0, ipadx = 0)
+        self.btn_add = Button(self.master, text="Add", command = self.add, width = 20)
+        self.btn_add.grid(row = 0, column = 0, padx = 0, pady = 0, ipadx = 0)
 
-        self.btn_delete = Button(self.master, text="Delete", command = self.delete, width = 8)
+        self.btn_delete = Button(self.master, text="Delete", command = self.delete, width = 20)
         self.btn_delete.grid(row = 0, column = 2, sticky = tk.E, padx = 0, pady = 0, ipadx = 0)
 
         # columns
@@ -980,32 +983,61 @@ class editAccountGUI:
         self.scrollbar = ttk.Scrollbar(self.master, orient = tk.VERTICAL, command = self.tree.yview)
         self.tree.configure(yscroll = self.scrollbar.set)
         self.scrollbar.grid(row = 1, column = 3, padx = 0, pady = 5, sticky = 'ns')
-
-        # add data
-        contacts = []
-        contacts.append(('admin', 'admin', 'Yes'))
-        contacts.append(('user', 'user', 'No', '2 - 1'))
-        for contact in contacts:
-            self.tree.insert('', tk.END, values=contact)
         
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-    def edit(self, parent):
+        self.master.update_idletasks()
+
+        self.schedule()
+
+    def schedule(self):
+        listAccount = self.services.req.command('accountList')
+
+        choosen = self.tree.item(self.tree.focus())['values']
+        for row in self.tree.get_children():
+            self.tree.delete(row)
+            
+        for account in listAccount:
+            self.tree.insert('', tk.END, values = account)
+
+        if choosen != '':
+            id = None
+            for row in self.tree.get_children():
+                if self.tree.item(row)['values'][0] == choosen[0]:
+                    id = row
+                    break
+
+            if id is not None: 
+                self.tree.selection_set(id)   
+                self.tree.focus(id)
+
+        self.master.after(timeout, self.schedule)
+
+    def edit(self):
         account = self.tree.item(self.tree.focus())['values']
         if account == '':
+            showwarning('Warning', 'Please choose account to edit', parent = self.master)
             return
 
         window_edit = Toplevel(self.master)
-        editGUI(window_edit, parent, self.services, account)
+        editGUI(window_edit, self.master, self.services, account)
         window_edit.mainloop()
 
-    def add(self, parent):
+    def add(self):
         window_add = Toplevel(self.master)
-        editGUI(window_add, parent, self.services, None)
+        editGUI(window_add, self.master, self.services, None)
         window_add.mainloop()
 
     def delete(self):
-        pass
+        account = self.tree.item(self.tree.focus())['values']
+        if account == '':
+            showwarning('Warning', 'Please choose account to delete', parent = self.master)
+            return
+        
+        if self.services.req.command('delAccount', account[0]):
+            showinfo('Sucess', 'Delete this account successfully', parent = self.master)
+        else:
+            showerror('Error', 'Unable to delete this account', parent = self.master)
 
     def on_closing(self):
         self.master.destroy()
@@ -1057,8 +1089,10 @@ class editGUI:
         if account is not None:
             self.txt_user.insert(-1, account[0])
             self.txt_pass.insert(-1, account[1])
-            if account[2] == 'Yes':
+            if account[2] == 1:
                 self.isAdmin.select()
+
+            self.txt_user.config(state = 'readonly')
 
             self.btn_change = Button(self.master, text="Change", command = self.change, width = 8)
             self.btn_change.grid(row = 6, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
@@ -1079,11 +1113,39 @@ class editGUI:
         self.parent.focus()
         self.parent.grab_set()
 
+    def getData(self):
+        User = self.txt_user.get()
+        Pass = self.txt_pass.get()
+        isAdmin = self.isCheck.get()
+
+        return User, Pass, isAdmin
+
+    def checkData(self, User, Pass):
+        if User == '' or Pass == '':
+            return False
+        return True
+
     def change(self):
-        pass
+        User, Pass, isAdmin = self.getData()
+        if self.checkData(User, Pass):
+            if self.services.req.command('editAccount', (User, Pass, isAdmin)):
+                self.on_closing()
+                showinfo('Success', 'Change account password successfully', parent = self.parent)
+            else:
+                showerror('Error', 'Unable to edit account', parent = self.master)
+        else:
+            showerror('Error', 'Invalid data', parent = self.master)
 
     def add(self):
-        pass
+        User, Pass, isAdmin = self.getData()
+        if self.checkData(User, Pass):
+            if self.services.req.command('signUp', (User, Pass, isAdmin)):
+                self.on_closing()
+                showinfo('Success', 'Create account successfully', parent = self.parent)
+            else:
+                showerror('Error', 'Unable to create account', parent = self.master)
+        else:
+            showerror('Error', 'Invalid data', parent = self.master)
 
     def cancel(self):
         self.on_closing()

@@ -65,7 +65,7 @@ class Database:
         return self.command('query', 'SELECT * FROM match ORDER BY datetime(time)')
 
     def getMatchDate(self, date):
-        return self.command('query', 'SELECT * FROM match WHERE round(JulianDay(time) - JulianDay(?) - 0.5, 0) = 0 ORDER BY datetime(time)', (date,))
+        return self.command('query', 'SELECT * FROM match WHERE date(time) = ? ORDER BY datetime(time)', (date,))
 
     def getMatchID(self, id):
         return self.command('query', "SELECT * FROM match WHERE id = ?", (id,))
@@ -103,7 +103,14 @@ class Database:
     def getGoal(self, match):
         return self.command('query', "SELECT time, team FROM detail WHERE match = ? AND code = 1  ORDER BY time", (match, ))
     
+    def editAccount(self, User, Pass, isAdmin):
+        return self.command('update', "UPDATE auth SET pass = ?, isAdmin = ? WHERE user = ?", (Pass, isAdmin, User))
 
+    def delAccount(self, User):
+        return self.command('update', "DELETE FROM auth WHERE user = ?", (User,))
+
+    def accountList(self):
+        return self.command('query', "SELECT * FROM auth")
     def run(self):
         while True:
             id, req, cmd, val = self.request.get()

@@ -24,11 +24,11 @@ class Server_GUI:
         self.btn_exit.grid(row = 1, column = 2, sticky = SE, ipady = 3)
         
         self.lbl_max = Label(self.master, text = "Maximum number of Clients")
-        self.lbl_max.grid(row = 0, column = 3, sticky = SE, pady = 2)
+        self.lbl_max.grid(row = 2, column = 3, sticky = SE, pady = 2)
 
         self.maxClients = tk.IntVar(value = 5)
         self.spinmaxClients = tk.Spinbox(self.master, width = 3,font=(None, 12), from_=0, to=30, textvariable=self.maxClients, wrap=True)
-        self.spinmaxClients.grid(row = 1, column = 3, sticky = N, pady = 2)
+        self.spinmaxClients.grid(row = 3, column = 3, sticky = N, pady = 2)
 
         self.lbl_log = Label(self.master, text = "Activity log")
         self.lbl_log.grid(row = 2, column = 0, sticky = W)
@@ -61,7 +61,7 @@ class Server_GUI:
     def start(self):
         if self.services is None:
             try:
-                self.services = server.Server(self.msg)
+                self.services = server.Server(self.msg, int(self.spinmaxClients.get()))
                 self.services.start()
             except:
                 self.services = None
@@ -72,7 +72,7 @@ class Server_GUI:
                 self.spinmaxClients.config(state = 'disabled')
 
         else:
-            count = self.services.clientCount()
+            count = self.services.countClient()
             if count > 0 and not askokcancel("Stop", f"{count} client(s) is connecting.\nDo you really want to stop server?"):
                 return
 
@@ -94,7 +94,7 @@ class Server_GUI:
     def on_closing(self):
         if self.services is not None:
             if askokcancel("Quit", "Server is running.\nDo you want to quit?"):
-                count = self.services.clientCount()
+                count = self.services.countClient()
                 
                 if count > 0 and not askokcancel("Stop", f"{count} client(s) is connecting.\nDo you really want to exit?"):
                     return
