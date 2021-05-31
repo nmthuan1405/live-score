@@ -185,7 +185,7 @@ class userGUI:
             self.master.title("Administrator")
         else:
             self.master.title("User")
-        # self.master.resizable(0, 0)
+        self.master.resizable(0, 0)
 
         self.master.focus()
         self.master.grab_set()
@@ -373,12 +373,8 @@ class detailGUI:
 
         self.services = services 
         self.match = match
-
-        if self.services.isAdmin:
-            self.master.title("Match details")
-        else:
-            self.master.title("Edit match")
-        # self.master.resizable(0, 0)
+        self.master.title("Match details")
+        self.master.resizable(0, 0)
         self.master.focus()
         # self.master.grab_set()    # Bo lock parent GUI
         self.master['padx'] = 10
@@ -573,7 +569,7 @@ class addEventGUI:
             self.master.title("Add event")
         else:
             self.master.title("Edit event")
-        # self.master.resizable(0, 0)
+        self.master.resizable(0, 0)
         self.master.focus()
         self.master.grab_set()
         self.master['padx'] = 10
@@ -787,7 +783,7 @@ class addMatchGUI:
             self.master.title("Add match")
         else:
             self.master.title("Edit match")
-        # self.master.resizable(0, 0)
+        self.master.resizable(0, 0)
         self.master.focus()
         self.master.grab_set()
         self.master['padx'] = 10
@@ -943,7 +939,7 @@ class editAccountGUI:
         self.services = services
         self.master = master
         self.master.title("Edit account")
-        # self.master.resizable(0, 0)
+        self.master.resizable(0, 0)
         self.master.focus()
         self.master.grab_set()
         self.master['padx'] = 10
@@ -1024,7 +1020,7 @@ class editGUI:
             self.master.title("Edit Account")
         else:
             self.master.title("Add Account")
-        # self.master.resizable(0, 0)
+        self.master.resizable(0, 0)
         self.master.focus()
         self.master.grab_set()
         self.master['padx'] = 10
