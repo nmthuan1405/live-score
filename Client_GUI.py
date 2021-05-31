@@ -205,6 +205,9 @@ class userGUI:
         self.allDate.select()
         self.allDate.place(x = 180, y = 0)
 
+        self.lbl_load = Label(self.master, text='Loading...')
+        self.lbl_load.place(x = 280, y = 2)
+
         if self.services.isAdmin:
             self.btn_edit = Button(self.master, text = "Edit match", width = 12, height = 1, command = self.edit)
             self.btn_edit.grid(column = 1, row = 1, sticky = tk.W, padx = 0, pady = 0, ipady = 0)
@@ -651,15 +654,6 @@ class addEventGUI:
         self.lbl_time.grid(column = 0, row = 9, sticky = W)
 
         self.txt_time = Entry(self.master)
-        if event is None:
-            self.isCheck = tk.IntVar()
-            self.checkbox = tk.Checkbutton(self.master, text = 'default', variable = self.isCheck, onvalue = 1, offvalue = 0, command = self.checker)
-            self.checkbox.select()
-            self.checkbox.place(x = 35, y = 196)
-
-            self.txt_time.insert(-1, 'now')
-            self.txt_time.config(state = 'disabled')
-            self.txt_time.config(state = 'readonly')
         
         self.txt_time.grid(column = 0, row = 10, columnspan = 3, sticky = EW, padx = 0, pady = 0)
 
@@ -672,13 +666,13 @@ class addEventGUI:
 
         if event is None:
             self.btn_add = Button(self.master, text="Add", command = self.add, width = 8)
-            self.btn_add.grid(row = 13, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+            self.btn_add.grid(row = 12, column = 1, sticky = tk.SW, padx = 0, pady = 0, ipadx = 0)
         else:
             self.btn_change = Button(self.master, text="Edit", command = self.change, width = 8)
-            self.btn_change.grid(row = 13, column = 1, sticky = tk.W, padx = 0, pady = 0, ipadx = 0)
+            self.btn_change.grid(row = 12, column = 1, sticky = tk.SW, padx = 0, pady = 0, ipadx = 0)
 
         self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
-        self.btn_cancel.grid(row = 13, column = 2, sticky = tk.S, padx = 0, pady = 0, ipadx = 0)
+        self.btn_cancel.grid(row = 12, column = 2, sticky = tk.SE, padx = 0, pady = 0, ipadx = 0)
 
         if event is not None and (event == '1' or event == '2' or event == '3'):
             self.lbl_team.grid(column = 0, row = 5, sticky = W)
