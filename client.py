@@ -364,7 +364,7 @@ class UpdateInfo:
         elif time < 90 + ht_len:
             return str(time - ht_len) + '\'', time - ht_len
         elif time < 90 + ht_len + ot:
-            return str(time - ht_len) + '\' + ' + str(time - 90 - ht_len) + '\'', time - ht_len
+            return '90\' + ' + str(time - 90 - ht_len) + '\'', time - ht_len
         else:
             return 'FT', time - ht_len
 
