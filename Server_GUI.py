@@ -24,7 +24,7 @@ class Server_GUI:
         self.btn_exit.grid(row = 1, column = 2, sticky = SE, ipady = 3, padx = 15)
 
         self.lbl_currClientsNum = Label(self.master)
-        self.lbl_currClientsNum.grid(row = 1, column = 3, sticky = SW, pady = 6)
+        self.lbl_currClientsNum.grid(row = 1, column = 3, columnspan = 2, sticky = SW, pady = 6)
         
         self.lbl_max = Label(self.master, text = "Maximum number of clients:")
         self.lbl_max.grid(row = 0, column = 3, sticky = SW)
