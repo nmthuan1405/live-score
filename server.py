@@ -127,7 +127,7 @@ class Client:
 
             try:
                 flag = self.recv_str()
-                self.writeLog(f'Received: {flag}')
+                # self.writeLog(f'Received: {flag}')
 
                 if flag == 'close':
                     self.close()
@@ -320,6 +320,7 @@ class Client:
         time = self.recv_str()
 
         self.send_state(self.db.insertDetail(match, id, code, time, team, player))
+        self.writeLog(f'Add event. ID: {id}')
 
     def c_editDetail(self):
         id = self.recv_str()
@@ -329,11 +330,13 @@ class Client:
         time = self.recv_str()
 
         self.send_state(self.db.editDetail(id, code, time, team, player))
+        self.writeLog(f'Edit event. ID: {id}')
 
     def c_delDetail(self):
         id = self.recv_str()
 
         self.send_state(self.db.delDetail(id))
+        self.writeLog(f'Delete event. ID: {id}')
 
     def c_getHT(self):
         id = self.recv_str()
@@ -352,10 +355,12 @@ class Client:
         Pass = self.recv_str()
         isAdmin = self.recv_str()
         self.send_state(self.db.editAccount(User, Pass, isAdmin))
+        self.writeLog('Edit account')
 
     def c_delAccount(self):
         User = self.recv_str()
         self.send_state(self.db.delAccount(User))
+        self.writeLog('Delete account')
 
     def c_accountList(self):
         self.send_obj(self.db.accountList())

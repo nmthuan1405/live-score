@@ -255,13 +255,13 @@ class QueueServer():
    
     def start(self):
         if self.client_thread is None:
-            self.client_thread = threading.Thread(target = self.run)
+            self.client_thread = threading.Thread(target = self.run, daemon = True)
             self.client_thread.start()
 
     def stop(self):
         if self.client_thread is not None:
             self.command('exit')
-            self.client_thread.join()
+            self.client_thread.join(5)
             self.client_thread = None
             self.result = {}
 
@@ -298,7 +298,7 @@ class UpdateInfo:
     def start(self):
         if self.thread is None:
             self.stopped = threading.Event()
-            self.thread = threading.Thread(target = self.updatingData)
+            self.thread = threading.Thread(target = self.updatingData, daemon = True)
             self.thread.start()
 
     def stop(self):
@@ -427,7 +427,7 @@ class UpdateInfo:
 
                     if _code == 4 or _code == 5:
                         event1 = event2 = codeName
-                        player1 = player2 = ''
+                        player1 = player2 = str(_team) + '\''
                     else:
                         if _team == 0:
                             player1, event1 = _player, codeName
