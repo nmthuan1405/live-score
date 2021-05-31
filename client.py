@@ -4,7 +4,6 @@ import queue
 import threading
 import uuid
 from datetime import datetime
-import time as tm
 
 class Client:
     def __init__(self, serverAddr, port = 1234, delim = b'\x00'):
@@ -284,6 +283,7 @@ class UpdateInfo:
         self.details = {}
         self.remove = []
         self.thread = None
+        self.stopped = None
         self.timeout = 1
 
     def setTimeout(self, time):
@@ -297,12 +297,13 @@ class UpdateInfo:
 
     def start(self):
         if self.thread is None:
+            self.stopped = threading.Event()
             self.thread = threading.Thread(target = self.updatingData)
             self.thread.start()
 
     def stop(self):
-        self.details.pop('main')
-        self.thread.join()
+        self.stopped.set()
+        self.thread.join(5)
 
         self.thread = None
         self.details = {}
@@ -364,16 +365,13 @@ class UpdateInfo:
             return 'FT', time - ht_len
 
     def updatingData(self):
-        while True:
+        while not self.stopped.wait(self.timeout):
             for ele in self.remove:
                 self.details.pop(ele)
             self.remove = []
 
             matchDetail = [*self.details]
-            if 'main' in matchDetail:
-                matchDetail.remove('main')
-            else:
-                break
+            matchDetail.remove('main')
 
             if self.details['main'][0] == False:
                 matches_tuple = self.req.command('listAll')
@@ -440,8 +438,6 @@ class UpdateInfo:
                     
                     rows.append([_id, timeDisp, player1, event1, scoreDisp, event2, player2])
                 self.details[id][1][1] = rows
-
-            tm.sleep(self.timeout)
 
 
 
