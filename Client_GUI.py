@@ -1,3 +1,4 @@
+from cgitb import text
 from doctest import master
 from time import time
 import tkinter as tk
@@ -632,8 +633,10 @@ class addEventGUI:
                 self.lbl_duration.grid_remove()
                 self.spinDur.grid_remove()
                 self.lbl_min.grid_remove()
+                self.txt_time.config(state = 'normal')
+                self.txt_time.delete(0, 'end')
 
-            if(self.cbb_eventType.get() == self.eventTypes[3] or self.cbb_eventType.get() == self.eventTypes[4]):
+            if(self.cbb_eventType.get() == self.eventTypes[3]):
                 self.lbl_team.grid_remove()
                 self.cbb_team.grid_remove()
 
@@ -641,8 +644,28 @@ class addEventGUI:
                 self.txt_player.grid_remove()
 
                 self.lbl_duration.grid(column = 0, row = 6, sticky = W)
+                self.spinDur.set(15)
+                self.spinDur.config(state = 'normal')
                 self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
                 self.lbl_min.grid(row = 7, column = 1, sticky = W)
+                self.txt_time.config(state = 'normal')
+                self.txt_time.delete(0, 'end')
+
+            if(self.cbb_eventType.get() == self.eventTypes[4]):
+                self.lbl_team.grid_remove()
+                self.cbb_team.grid_remove()
+
+                self.lbl_player.grid_remove()
+                self.txt_player.grid_remove()
+
+                self.lbl_duration.grid(column = 0, row = 6, sticky = W)
+                self.spinDur.set(5)
+                self.spinDur.config(state = 'disable')
+                self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
+                self.lbl_min.grid(row = 7, column = 1, sticky = W)
+                self.txt_time.delete(0, 'end')
+                self.txt_time.insert(0, '90')
+                self.txt_time.config(state = 'disable')
         
         self.cbb_eventType.bind('<<ComboboxSelected>>', eventTypeChanged)
 
@@ -699,17 +722,6 @@ class addEventGUI:
         self.btn_cancel = Button(self.master, text="Cancel", command = self.cancel, width = 8)
         self.btn_cancel.grid(row = 12, column = 2, sticky = tk.SE, padx = 0, pady = 0, ipadx = 0)
 
-        if event is not None and (event == '1' or event == '2' or event == '3'):
-            self.lbl_team.grid(column = 0, row = 5, sticky = W)
-            self.cbb_team.grid(column = 0, row = 6, columnspan = 3, sticky = EW, padx = 0, pady = 0)
-
-            self.lbl_player.grid(column = 0, row = 7, sticky = W)
-            self.txt_player.grid(column = 0, row = 8, columnspan = 3, sticky = EW, padx = 0, pady = 0)
-
-        elif event is not None:   #event == '4' or event == '5':
-            self.lbl_duration.grid(column = 0, row = 6, sticky = W)
-            self.spinDur.grid(row = 7, column = 0, columnspan = 1, sticky = W)
-            self.lbl_min.grid(row = 7, column = 1, sticky = W)
 
         col_count, row_count = self.master.grid_size()
         for col in range(col_count):
