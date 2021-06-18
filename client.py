@@ -403,12 +403,17 @@ class UpdateInfo:
                         details = self.req.command('getDls', id)
                         match = self.req.command('getMatch', id)
 
+                        if match == []:
+                            self.details[id][1] = False
+                            continue
+
                         time, timeInt, score = self.caculateMatch(match[0], details)
                         self.details[id][1] = [[id, timeStamp, time, team1Name, team2Name, score, timeInt], None]
                     else:
                         details = self.details[id][2]
                         self.details[id][2] = None
 
+                    
                     rows = []
                     score = [0, 0]
                     isRealtime = self.details[id][0]

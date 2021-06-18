@@ -633,8 +633,6 @@ class addEventGUI:
                 self.lbl_duration.grid_remove()
                 self.spinDur.grid_remove()
                 self.lbl_min.grid_remove()
-                self.txt_time.config(state = 'normal')
-                self.txt_time.delete(0, 'end')
 
             if(self.cbb_eventType.get() == self.eventTypes[3]):
                 self.lbl_team.grid_remove()
