@@ -355,7 +355,8 @@ class UpdateInfo:
         
         if datetime.now() < startTime:
             return startTime.strftime('%H:%M'), -1
-        time = int ((datetime.now() - startTime).seconds / 60)
+
+        time = int ((datetime.now() - startTime).total_seconds / 60)
 
         if time < ht_start:
             return str(time) + '\'', time
